@@ -1,0 +1,32 @@
+{
+  "name": "cdg.js",
+  "homepage": "https://github.com/willprescott/cdg.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/willprescott/cdg.js.git"
+  },
+  "description": "",
+  "keywords": [
+    "cdg",
+    "karaoke"
+  ],
+  "authors": [
+    "Will Prescott",
+    "\"mediacaster\""
+  ],
+  "moduleType": "globals",
+  "license": "GPL-2.0",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test"
+  ],
+  "dependencies": {
+    "jquery": "2"
+  },
+  "devDependencies": {
+    "qunit": "1"
+  }
+}
