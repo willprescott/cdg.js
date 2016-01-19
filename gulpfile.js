@@ -1,34 +1,31 @@
 var gulp = require('gulp'),
-    path = require('path'),
-    jshint = require('gulp-jshint'),
-    uglify = require('gulp-uglify'),
-    rename = require('gulp-rename'),
-    concat = require('gulp-concat'),
-    del = require('del');
+    eslint = require('gulp-eslint'),
+    sourcemaps = require('gulp-sourcemaps'),
+    licenser = require('gulp-licenser'),
+    requirejsOptimize = require('gulp-requirejs-optimize'),
+    del = require('del'),
+    fs = require('fs');
+
+var license = fs.readFileSync('./src/banner.txt', 'utf8');
 
 gulp.task('clean', function() {
-    return del(['dist/*']);
+    return del(['dist/*','coverage/*']);
 });
 
-gulp.task('jshint', function() {
+gulp.task('eslint', function() {
     return gulp.src('./src/**/*.js')
-        .pipe(jshint())
-        .pipe(jshint.reporter('default'))
+        .pipe(eslint())
+        .pipe(eslint.format())
+        .pipe(eslint.failAfterError())
 });
 
 gulp.task('scripts', function() {
-    return gulp.src('./src/**/*.js')
-        .pipe(jshint())
-        .pipe(jshint.reporter('default'))
-        .pipe(concat('cdg.js'))
+    return gulp.src('./src/cdg.js')
+        .pipe(sourcemaps.init())
+        .pipe(requirejsOptimize())
+        .pipe(sourcemaps.write('.'))
+        .pipe(licenser(license))
         .pipe(gulp.dest('dist'))
-        .pipe(rename({suffix: '.min'}))
-        .pipe(uglify())
-        .pipe(gulp.dest('dist'))
-});
-
-gulp.task('watch', function() {
-    gulp.watch('src/**/*.js', ['scripts']);
 });
 
 gulp.task('default', ['clean'], function() {
