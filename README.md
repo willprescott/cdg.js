@@ -1,5 +1,7 @@
 # cdg.js
 
+[![Build Status](https://travis-ci.org/willprescott/cdg.js.svg?branch=master)](https://travis-ci.org/willprescott/cdg.js)
+
 cdg.js is a JavaScript library for playing CD+G karaoke files in a web browser.
 
 The core of the library is derived from the awesome 
