@@ -5,7 +5,7 @@
     "type": "git",
     "url": "git://github.com/willprescott/cdg.js.git"
   },
-  "description": "",
+  "description": "A JavaScript module for playing CD+G karaoke files in a web browser.",
   "keywords": [
     "cdg",
     "karaoke"
@@ -19,7 +19,6 @@
   ],
   "moduleType": "amd",
   "license": "GPL-2.0",
-  "private": true,
   "ignore": [
     "**/.*",
     "node_modules",

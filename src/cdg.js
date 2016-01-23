@@ -582,8 +582,8 @@ define("cdg", [], function() {
             audioPlayer.currentTime = 0;
         }
 
-        function parseOptions(options) {
-            if (!options || Array.isArray(options) || (typeof options !== 'string' && typeof options !== 'object')) {
+        function parseTrackOptions(trackOptions) {
+            if (!trackOptions || Array.isArray(trackOptions) || (typeof trackOptions !== 'string' && typeof trackOptions !== 'object')) {
                 throw new Error('No track information specified, nothing to load!');
             }
             var audioFilePrefix,
@@ -591,27 +591,29 @@ define("cdg", [], function() {
                 mediaPath = defaults.mediaPath,
                 audioFormat = defaults.audioFormat,
                 cdgFileExtension = defaults.cdgFileExtension;
-            if (typeof options === 'object') {
-                if (!options.audioFilePrefix) {
+            if (typeof trackOptions === 'object') {
+                if (!trackOptions.audioFilePrefix) {
                     throw new Error('No audioFilePrefix property defined, nothing to load!');
                 } else {
-                    audioFilePrefix = options.audioFilePrefix;
+                    audioFilePrefix = trackOptions.audioFilePrefix;
                 }
-                cdgFilePrefix = options.cdgFilePrefix ? options.cdgFilePrefix : options.audioFilePrefix;
-                if (options.mediaPath) {
-                    mediaPath = options.mediaPath;
+                cdgFilePrefix = trackOptions.cdgFilePrefix ? trackOptions.cdgFilePrefix : trackOptions.audioFilePrefix;
+                if (trackOptions.mediaPath) {
+                    mediaPath = trackOptions.mediaPath;
                 }
-                if (options.audioFormat) {
-                    if (!audioTypes[options.audioFormat]) {
+                if (trackOptions.audioFormat) {
+                    if (!audioTypes[trackOptions.audioFormat]) {
                         throw new Error('Unsupported audio format specified');
                     }
-                    audioFormat = options.audioFormat;
+                    audioFormat = trackOptions.audioFormat;
                 }
-                if (options.cdgFileExtension) {
-                    cdgFileExtension = options.cdgFileExtension;
+                if (trackOptions.cdgFileExtension) {
+                    cdgFileExtension = trackOptions.cdgFileExtension;
                 }
             } else {
-                audioFilePrefix = cdgFilePrefix = options;
+                // If only a string has been passed treat it as shorthand for setting the filename prefix for both
+                // audio and CDG files
+                audioFilePrefix = cdgFilePrefix = trackOptions;
             }
 
             return {
@@ -623,8 +625,8 @@ define("cdg", [], function() {
             }
         }
 
-        function loadTrack(options) {
-            var trackInfo = parseOptions(options);
+        function loadTrack(trackOptions) {
+            var trackInfo = parseTrackOptions(trackOptions);
             clearCDGInterval();
             cdgDecoder.reset_cdg_state();
             cdgDecoder.redraw_canvas();
@@ -664,8 +666,8 @@ define("cdg", [], function() {
             containerEl.appendChild(borderEl);
             containerEl.appendChild(audioPlayer);
             audioPlayer.style.width = canvasEl.offsetWidth + "px";
-            audioPlayer.controls = (initOptions && initOptions.showControls) != false;
-            audioPlayer.autoplay = (initOptions && initOptions.autoplay) != false;
+            audioPlayer.controls = !(initOptions && initOptions.showControls == false);
+            audioPlayer.autoplay = !(initOptions && initOptions.autoplay == false);
             audioPlayer.addEventListener("error", handleAudioError, true);
             audioPlayer.addEventListener("play", setCDGInterval, true);
             audioPlayer.addEventListener("pause", clearCDGInterval, true);
