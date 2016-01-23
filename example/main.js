@@ -36,9 +36,6 @@ require(['cdg'], function(cdg) {
     document.getElementById("stopbtn").addEventListener("click", function() {
         player.stop();
     });
-    document.getElementById("loadnewtrack").addEventListener("click", function() {
-        player.loadTrack('vktrs');
-    });
 
     // Example fullscreen support provided by screenfull.js: https://github.com/sindresorhus/screenfull.js
     var rgbaCanvas = document.getElementById("cdg-canvas");
