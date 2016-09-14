@@ -23,8 +23,8 @@ gulp.task('scripts', function() {
   return gulp.src('./src/cdg.js')
     .pipe(sourcemaps.init())
     .pipe(requirejsOptimize())
-    .pipe(sourcemaps.write('.'))
     .pipe(licenser(license))
+    .pipe(sourcemaps.write('.'))
     .pipe(gulp.dest('dist'))
 });
 
