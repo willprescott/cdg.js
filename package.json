@@ -8,7 +8,7 @@
   "private": true,
   "devDependencies": {
     "del": "^2.2.0",
-    "gulp": "^3.9.0",
+    "gulp": "^4.0.2",
     "gulp-eslint": "^1.1.1",
     "gulp-licenser": "^1.0.2",
     "gulp-requirejs-optimize": "^0.3.1",
