@@ -1,33 +1,33 @@
-var gulp = require('gulp'),
-  eslint = require('gulp-eslint'),
-  sourcemaps = require('gulp-sourcemaps'),
-  licenser = require('gulp-licenser'),
-  requirejsOptimize = require('gulp-requirejs-optimize'),
-  del = require('del'),
-  fs = require('fs');
+const { series, src, dest } = require('gulp');
+const fs = require('fs');
+const clean = require('gulp-clean');
+const eslint = require('gulp-eslint');
+const sourcemaps = require('gulp-sourcemaps');
+const licenser = require('gulp-licenser');
+const requirejsOptimize = require('gulp-requirejs-optimize');
+const license = fs.readFileSync('./src/banner.txt', 'utf8');
 
-var license = fs.readFileSync('./src/banner.txt', 'utf8');
+function cleanOutput() {
+  return src(['dist/*', 'coverage/*'], {read: false})
+    .pipe(clean());
+}
 
-gulp.task('clean', function() {
-  return del(['dist/*', 'coverage/*']);
-});
-
-gulp.task('eslint', function() {
-  return gulp.src('./src/**/*.js')
+function lint() {
+  return src('./src/**/*.js')
     .pipe(eslint())
     .pipe(eslint.format())
     .pipe(eslint.failAfterError())
-});
+}
 
-gulp.task('scripts', function() {
-  return gulp.src('./src/cdg.js')
+function scripts() {
+  return src('./src/cdg.js')
     .pipe(sourcemaps.init())
     .pipe(requirejsOptimize())
     .pipe(licenser(license))
     .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest('dist'))
-});
+    .pipe(dest('dist'))
+}
 
-gulp.task('default', ['clean'], function() {
-  gulp.start('scripts');
-});
+exports.cleanOutput = series(cleanOutput);
+exports.lint = series(lint);
+exports.default = series(cleanOutput, scripts);
