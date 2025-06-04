@@ -2,7 +2,6 @@ const { series, src, dest } = require('gulp');
 const fs = require('fs');
 const clean = require('gulp-clean');
 const eslint = require('gulp-eslint');
-const sourcemaps = require('gulp-sourcemaps');
 const licenser = require('gulp-licenser');
 const requirejsOptimize = require('gulp-requirejs-optimize');
 const license = fs.readFileSync('./src/banner.txt', 'utf8');
@@ -20,12 +19,11 @@ function lint() {
 }
 
 function scripts() {
-  return src('./src/cdg.js')
+  return src('./src/cdg.js', { sourcemaps: true })
     .pipe(sourcemaps.init())
     .pipe(requirejsOptimize())
     .pipe(licenser(license))
-    .pipe(sourcemaps.write('.'))
-    .pipe(dest('dist'))
+    .pipe(dest('dist', { sourcemaps: '.' }))
 }
 
 exports.cleanOutput = series(cleanOutput);
