@@ -9,8 +9,11 @@
   "devDependencies": {
     "gulp": "^5.0.1",
     "gulp-clean": "^0.4.0",
-    "gulp-eslint": "^6.0.0",
     "gulp-licenser": "^1.0.2",
     "gulp-requirejs-optimize": "^1.3.0"
+  },
+  "dependencies": {
+    "eslint-js": "^0.0.1-security",
+    "gulp-eslint-new": "^2.4.0"
   }
 }
