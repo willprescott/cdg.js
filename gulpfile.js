@@ -7,7 +7,7 @@ const requirejsOptimize = require("gulp-requirejs-optimize");
 const license = fs.readFileSync("./src/banner.txt", "utf8");
 
 function cleanOutput() {
-  return src(["dist/*", "coverage/*"], { read: false }).pipe(clean());
+  return src(["dist/*"], { read: false }).pipe(clean());
 }
 
 function lint() {
@@ -19,7 +19,6 @@ function lint() {
 
 function scripts() {
   return src("./src/cdg.js", { sourcemaps: true })
-    .pipe(sourcemaps.init())
     .pipe(requirejsOptimize())
     .pipe(licenser(license))
     .pipe(dest("dist", { sourcemaps: "." }));
