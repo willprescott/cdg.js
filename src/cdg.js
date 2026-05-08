@@ -503,30 +503,35 @@ function CDGPlayer(containerId, initOptions) {
     mp3: 'audio/mpeg; codecs="mp3"',
     ogg: 'audio/ogg; codecs="vorbis"'
   };
+  const listeners = {};
   let audioPlayer = null;
   let audioSourceElement = null;
   let cdgIntervalID = null;
-  let cdgHttpRequest = null;
   let cdgData = null;
   let cdgDecoder = null;
 
-  function handleCDGHttpRequest() {
-    if (!cdgHttpRequest) {
-      return;
-    }
-    if (cdgHttpRequest.readyState == 4) {
-      if (cdgHttpRequest.status != 200) {
-        throw new Error('CDG file failed to load');
+  function emit(event, ...args) {
+    if (listeners[event] && listeners[event].length > 0) {
+      for (const handler of listeners[event]) {
+        handler(...args);
       }
-      cdgData = cdgHttpRequest.responseText;
-      cdgHttpRequest = null;
+    } else if (event === 'error') {
+      console.error(...args);
     }
+  }
+
+  function on(event, handler) {
+    if (!listeners[event]) {
+      listeners[event] = [];
+    }
+    listeners[event].push(handler);
+    return this;
   }
 
   function handleAudioError() {
     if (audioPlayer.error) {
       const error_result = audioPlayer.error.code ? audioPlayer.error.code : audioPlayer.error;
-      throw new Error("The audio control fired an error event. Could be: " + error_result);
+      emit('error', new Error("The audio control fired an error event. Could be: " + error_result));
     }
   }
 
@@ -616,17 +621,12 @@ function CDGPlayer(containerId, initOptions) {
     };
   }
 
-  function loadTrack(trackOptions) {
+  async function loadTrack(trackOptions) {
     const trackInfo = parseTrackOptions(trackOptions);
     clearCDGInterval();
     cdgDecoder.reset_cdg_state();
     cdgDecoder.redraw_canvas();
     cdgData = null;
-    cdgHttpRequest = new XMLHttpRequest();
-    cdgHttpRequest.onreadystatechange = handleCDGHttpRequest;
-    cdgHttpRequest.open("GET", trackInfo.mediaPath + trackInfo.cdgFilePrefix + "." + trackInfo.cdgFileExtension, true);
-    cdgHttpRequest.setRequestHeader("Content-Type", "text/html");
-    cdgHttpRequest.send();
     if (audioSourceElement == null) {
       audioSourceElement = document.createElement("source");
     }
@@ -634,6 +634,16 @@ function CDGPlayer(containerId, initOptions) {
     audioSourceElement.src = trackInfo.mediaPath + trackInfo.audioFilePrefix + "." + trackInfo.audioFormat;
     audioPlayer.appendChild(audioSourceElement);
     audioPlayer.load();
+    try {
+      const cdgUrl = trackInfo.mediaPath + trackInfo.cdgFilePrefix + "." + trackInfo.cdgFileExtension;
+      const response = await fetch(cdgUrl);
+      if (!response.ok) {
+        throw new Error(`CDG file failed to load: ${response.status}`);
+      }
+      cdgData = await response.text();
+    } catch (error) {
+      emit('error', error);
+    }
     return this;
   }
 
@@ -674,6 +684,7 @@ function CDGPlayer(containerId, initOptions) {
   this.play = play;
   this.stop = stop;
   this.pause = pause;
+  this.on = on;
 }
 
 export function init(containerId, initOptions) {
