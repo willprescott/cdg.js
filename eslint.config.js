@@ -15,7 +15,7 @@ module.exports = defineConfig([
         document: "readonly",
         setInterval: "readonly",
         clearInterval: "readonly",
-        XMLHttpRequest: "readonly",
+        fetch: "readonly",
       },
     },
     rules: {},
