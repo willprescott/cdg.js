@@ -185,6 +185,19 @@ function CDGDecoder(canvasEl, borderEl) {
     internal_screen_dirty = true;
   }
 
+  // Write one 6-pixel line segment (one VRAM word) into the RGBA buffer.
+  // Alpha is always 0xFF; CD+G's SET_TRANSPARENT instruction is rarely used on real discs.
+  function write_line_segment(rgba, offset, palette, line_indices) {
+    for (const shift of [0, 4, 8, 12, 16, 20]) {
+      const rgb = palette[(line_indices >> shift) & 0x0F];
+      rgba[offset++] = (rgb >> 16) & 0xFF;
+      rgba[offset++] = (rgb >> 8) & 0xFF;
+      rgba[offset++] = rgb & 0xFF;
+      rgba[offset++] = 0xFF;
+    }
+    return offset;
+  }
+
   function render_screen_to_rgb() {
     const local_rgba = internal_rgba_imagedata.data;
     const local_pal = internal_palette;
@@ -192,47 +205,12 @@ function CDGDecoder(canvasEl, borderEl) {
     const vis_width = 48;
     const vis_height = CDG_ENUM.VISIBLE_HEIGHT;
 
-    let vram_loc = 601;   // Offset into VRAM array.
-    let rgb_loc = 0x00;  // Offset into RGBA array.
-    let curr_rgb = 0x00;          // RGBA value of current pixel.
-    let curr_line_indices = 0x00; // Packed font row index values.
+    let vram_loc = 601;
+    let rgb_loc = 0x00;
 
     for (let y_pxl = 0; y_pxl < vis_height; ++y_pxl) {
       for (let x_pxl = 0; x_pxl < vis_width; ++x_pxl) {
-        curr_line_indices = local_vram[vram_loc++];              // Get the current line segment indices.
-        curr_rgb = local_pal[(curr_line_indices >> 0) & 0x0F];  // Get the RGB value for pixel 0.
-        local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 0.
-        local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 0.
-        local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 0.
-        local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 0.
-        curr_rgb = local_pal[(curr_line_indices >> 4) & 0x0F];  // Get the RGB value for pixel 1.
-        local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 1.
-        local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 1.
-        local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 1.
-        local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 1.
-        curr_rgb = local_pal[(curr_line_indices >> 8) & 0x0F];  // Get the RGB value for pixel 2.
-        local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 2.
-        local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 2.
-        local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 2.
-        local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 2.
-        curr_rgb = local_pal[(curr_line_indices >> 12) & 0x0F];  // Get the RGB value for pixel 3.
-        local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 3.
-        local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 3.
-        local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 3.
-        local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 3.
-        curr_rgb = local_pal[(curr_line_indices >> 16) & 0x0F];  // Get the RGB value for pixel 4.
-        local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 4.
-        local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 4.
-        local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 4.
-        local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 4.
-        curr_rgb = local_pal[(curr_line_indices >> 20) & 0x0F];  // Get the RGB value for pixel 5.
-        local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 5.
-        local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 5.
-        local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 5.
-        local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 5.
-        // Or, instead, index 0 could be set transparent to show background image/video.
-        // Alternately, SET_TRANSPARENT instruction could be implemented to set 6bit transparency.
-        // Unfortunately, I don't think many (any?) discs bother to set it :-/...
+        rgb_loc = write_line_segment(local_rgba, rgb_loc, local_pal, local_vram[vram_loc++]);
       }
       vram_loc += 2;  // Skip the offscreen font blocks.
     }
@@ -243,53 +221,18 @@ function CDGDecoder(canvasEl, borderEl) {
     const local_pal = internal_palette;
     const local_vram = internal_vram;
 
-    let vram_loc = (y_start * CDG_ENUM.NUM_X_FONTS * CDG_ENUM.FONT_HEIGHT) + x_start;  // Offset into VRAM array.
+    let vram_loc = (y_start * CDG_ENUM.NUM_X_FONTS * CDG_ENUM.FONT_HEIGHT) + x_start;
     const vram_inc = CDG_ENUM.NUM_X_FONTS;
-    const vram_end = vram_loc + (CDG_ENUM.NUM_X_FONTS * CDG_ENUM.FONT_HEIGHT);       // VRAM location to end.
-    let rgb_loc = (y_start - 1) * CDG_ENUM.FONT_HEIGHT * CDG_ENUM.VISIBLE_WIDTH; // Row start.
-    rgb_loc += (x_start - 1) * CDG_ENUM.FONT_WIDTH;                           // Column start
-    rgb_loc *= 4;                                                             // RGBA, 1 pxl = 4 bytes.
+    const vram_end = vram_loc + (CDG_ENUM.NUM_X_FONTS * CDG_ENUM.FONT_HEIGHT);
+    let rgb_loc = (y_start - 1) * CDG_ENUM.FONT_HEIGHT * CDG_ENUM.VISIBLE_WIDTH;
+    rgb_loc += (x_start - 1) * CDG_ENUM.FONT_WIDTH;
+    rgb_loc *= 4;
     const rgb_inc = (CDG_ENUM.VISIBLE_WIDTH - CDG_ENUM.FONT_WIDTH) * 4;
-    let curr_rgb = 0x00;          // RGBA value of current pixel.
-    let curr_line_indices = 0x00; // Packed font row index values.
 
     while (vram_loc < vram_end) {
-      curr_line_indices = local_vram[vram_loc];                // Get the current line segment indices.
-      curr_rgb = local_pal[(curr_line_indices >> 0) & 0x0F];  // Get the RGB value for pixel 0.
-      local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 0.
-      local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 0.
-      local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 0.
-      local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 0.
-      curr_rgb = local_pal[(curr_line_indices >> 4) & 0x0F];  // Get the RGB value for pixel 1.
-      local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 1.
-      local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 1.
-      local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 1.
-      local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 1.
-      curr_rgb = local_pal[(curr_line_indices >> 8) & 0x0F];  // Get the RGB value for pixel 2.
-      local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 2.
-      local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 2.
-      local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 2.
-      local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 2.
-      curr_rgb = local_pal[(curr_line_indices >> 12) & 0x0F];  // Get the RGB value for pixel 3.
-      local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 3.
-      local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 3.
-      local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 3.
-      local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 3.
-      curr_rgb = local_pal[(curr_line_indices >> 16) & 0x0F];  // Get the RGB value for pixel 4.
-      local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 4.
-      local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 4.
-      local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 4.
-      local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 4.
-      curr_rgb = local_pal[(curr_line_indices >> 20) & 0x0F];  // Get the RGB value for pixel 5.
-      local_rgba[rgb_loc++] = (curr_rgb >> 16) & 0xFF;        // Set red value for pixel 5.
-      local_rgba[rgb_loc++] = (curr_rgb >> 8) & 0xFF;        // Set green value for pixel 5.
-      local_rgba[rgb_loc++] = (curr_rgb >> 0) & 0xFF;        // Set blue value for pixel 5.
-      local_rgba[rgb_loc++] = 0xFF;                            // Set alpha value (fully opaque) for pixel 5.
-      // Or, instead, index 0 could be set transparent to show background image/video.
-      // Alternately, SET_TRANSPARENT instruction could be implemented to set 6bit transparency.
-      // Unfortunately, I don't think many (any?) discs bother to set it :-/...
-      vram_loc += vram_inc; // Move to the first column of the next row of this font block in VRAM.
-      rgb_loc += rgb_inc;  // Move to the first column of the next row of this font block in RGB pixels.
+      rgb_loc = write_line_segment(local_rgba, rgb_loc, local_pal, local_vram[vram_loc]);
+      vram_loc += vram_inc;
+      rgb_loc += rgb_inc;
     }
   }
 
