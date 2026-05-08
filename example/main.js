@@ -24,19 +24,19 @@ player.loadTrack("demo");
 
 // The player also exposes play(), pause() and stop() methods which can be easily bound to event handlers
 
-document.getElementById("playbtn").addEventListener("click", function () {
+document.getElementById("playbtn").addEventListener("click", () => {
   player.play();
 });
-document.getElementById("pausebtn").addEventListener("click", function () {
+document.getElementById("pausebtn").addEventListener("click", () => {
   player.pause();
 });
-document.getElementById("stopbtn").addEventListener("click", function () {
+document.getElementById("stopbtn").addEventListener("click", () => {
   player.stop();
 });
 
 // Example fullscreen support using the browser's fullscreen API
 const cdgCanvas = document.getElementById("cdg-canvas");
-cdgCanvas.addEventListener("dblclick", function (e) {
+cdgCanvas.addEventListener("dblclick", (e) => {
   if (!document.fullscreenElement) {
     e.target.requestFullscreen();
   } else {
