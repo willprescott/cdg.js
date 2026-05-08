@@ -17,40 +17,45 @@
  *  along with CD+Graphics Magic. If not, see <http://www.gnu.org/licenses/>.
  */
 
-function CDGDecoder(canvasEl, borderEl) {
+const CDG_ENUM = {
+  VRAM_HEIGHT: 216,         // Height of VRAM, in pixels.
+  VISIBLE_WIDTH: 288,       // Width (or pitch) of visible screen, in pixels.
+  VISIBLE_HEIGHT: 192,      // Height of visible screen, in pixels.
+  FONT_WIDTH: 6,            // Width of one "font" (or block).
+  FONT_HEIGHT: 12,          // Height of one "font" (or block).
+  NUM_X_FONTS: 50,          // Number of horizontal fonts contained in VRAM.
+  NUM_Y_FONTS: 18,          // Number of vertical fonts contained in VRAM.
+  VISIBLE_X_FONTS: 48,      // Number of visible horizontal font columns.
+  VISIBLE_Y_FONTS: 16,      // Number of visible vertical font rows.
+  PALETTE_ENTRIES: 16,      // Number of CLUT palette entries.
+  CLUT_ENTRIES: 8,          // Number of palette entries per LOAD_CLUT instruction.
+  PACK_SIZE: 24,            // Size of one CDG data pack, in bytes.
+  PACKS_PER_SECOND: 300,    // CD+G standard pack rate.
+  TV_GRAPHICS: 0x09,        // 50x18 (48x16) 16 color TV graphics mode.
+  MEMORY_PRESET: 0x01,      // Set all VRAM to palette index.
+  BORDER_PRESET: 0x02,      // Set border to palette index.
+  LOAD_CLUT_LO: 0x1E,       // Load Color Look Up Table index 0 through 7.
+  LOAD_CLUT_HI: 0x1F,       // Load Color Look Up Table index 8 through 15.
+  COPY_FONT: 0x06,          // Copy 12x6 pixel font to screen.
+  XOR_FONT: 0x26,           // XOR 12x6 pixel font with existing VRAM values.
+  SCROLL_PRESET: 0x14,      // Update scroll offset, copying if 0x20 or 0x10.
+  SCROLL_COPY: 0x18         // Update scroll offset, setting color if 0x20 or 0x10.
+};
 
-  const CDG_ENUM = {
-    VRAM_HEIGHT: 216,    // Height of VRAM, in pixels.
-    VISIBLE_WIDTH: 288,    // Width (or pitch) of visible screen, in pixels.
-    VISIBLE_HEIGHT: 192,    // Height of visible screen, in pixels.
-    FONT_WIDTH: 6,    // Width of  one "font" (or block).
-    FONT_HEIGHT: 12,    // Height of one "font" (or block).
-    NUM_X_FONTS: 50,    // Number of horizontal fonts contained in VRAM.
-    NUM_Y_FONTS: 18,    // Number of vertical fonts contained in VRAM.
-    PALETTE_ENTRIES: 16,    // Number of CLUT palette entries.
-    TV_GRAPHICS: 0x09,    // 50x18 (48x16) 16 color TV graphics mode.
-    MEMORY_PRESET: 0x01,    // Set all VRAM to palette index.
-    BORDER_PRESET: 0x02,    // Set border to palette index.
-    LOAD_CLUT_LO: 0x1E,    // Load Color Look Up Table index 0 through 7.
-    LOAD_CLUT_HI: 0x1F,    // Load Color Look Up Table index 8 through 15.
-    COPY_FONT: 0x06,    // Copy 12x6 pixel font to screen.
-    XOR_FONT: 0x26,    // XOR 12x6 pixel font with existing VRAM values.
-    SCROLL_PRESET: 0x14,    // Update scroll offset, copying if 0x20 or 0x10.
-    SCROLL_COPY: 0x18     // Update scroll offset, setting color if 0x20 or 0x10.
-  };
+function CDGDecoder(canvasEl, borderEl) {
 
   const internal_border_div = borderEl; // DIV element behind graphics canvas.
   const internal_rgba_context = canvasEl.getContext("2d");  // 2D context of canvas element.
   const internal_rgba_imagedata = internal_rgba_context.createImageData(CDG_ENUM.VISIBLE_WIDTH, CDG_ENUM.VISIBLE_HEIGHT);  // 288x192 image data.
-  const internal_palette = new Array(CDG_ENUM.PALETTE_ENTRIES);                     // Array containing the 16 RGB palette entries.
-  const internal_vram = new Array(CDG_ENUM.NUM_X_FONTS * CDG_ENUM.VRAM_HEIGHT);  // Array used for graphics VRAM.
+  const internal_palette = new Array(CDG_ENUM.PALETTE_ENTRIES);                                        // Array containing the 16 RGB palette entries.
+  const internal_vram = new Array(CDG_ENUM.NUM_X_FONTS * CDG_ENUM.VRAM_HEIGHT);                       // Array used for graphics VRAM.
 
   let internal_border_index = 0x00;  // The current border palette index.
   let internal_current_pack = 0x00;  // The current playback position.
 
-  let internal_border_dirty = false;            // State variable used to determine if the background DIV needs updated.
-  let internal_screen_dirty = false;            // State variable used to determine if a full screen update is needed.
-  const internal_dirty_blocks = new Array(900);  // Array used to determine if a given font/block has changed.
+  let internal_border_dirty = false;                                                                    // State variable used to determine if the background DIV needs updated.
+  let internal_screen_dirty = false;                                                                    // State variable used to determine if a full screen update is needed.
+  const internal_dirty_blocks = new Array(CDG_ENUM.NUM_X_FONTS * CDG_ENUM.NUM_Y_FONTS);               // Array used to determine if a given font/block has changed.
 
   // Reset all the CDG state variables back to initial values.
   function reset_cdg_state() {
@@ -86,9 +91,9 @@ function CDGDecoder(canvasEl, borderEl) {
       const local_fontwidth = CDG_ENUM.FONT_WIDTH;
       const local_fontheight = CDG_ENUM.FONT_HEIGHT;
       let blk = 0x00;
-      for (let y_blk = 1; y_blk <= 16; ++y_blk) {
+      for (let y_blk = 1; y_blk <= CDG_ENUM.VISIBLE_Y_FONTS; ++y_blk) {
         blk = y_blk * CDG_ENUM.NUM_X_FONTS + 1;
-        for (let x_blk = 1; x_blk <= 48; ++x_blk) {
+        for (let x_blk = 1; x_blk <= CDG_ENUM.VISIBLE_X_FONTS; ++x_blk) {
           if (local_dirty[blk]) {
             render_block_to_rgb(x_blk, y_blk);
             local_context.putImageData(local_rgba_imagedata, 0, 0,
@@ -107,11 +112,11 @@ function CDGDecoder(canvasEl, borderEl) {
   // Decode to pack playback_position, using cdg_file_data.
   function decode_packs(cdg_file_data, playback_position) {
     for (let curr_pack = internal_current_pack; curr_pack < playback_position; curr_pack++) {
-      const start_offset = curr_pack * 24;
+      const start_offset = curr_pack * CDG_ENUM.PACK_SIZE;
       const curr_command = cdg_file_data.charCodeAt(start_offset) & 0x3F;
       if (curr_command == CDG_ENUM.TV_GRAPHICS) {
         // Slice the file array down to a single pack array.
-        const this_pack = cdg_file_data.slice(start_offset, start_offset + 24);
+        const this_pack = cdg_file_data.slice(start_offset, start_offset + CDG_ENUM.PACK_SIZE);
         // Pluck out the graphics instruction.
         const curr_instruction = this_pack.charCodeAt(1) & 0x3F;
         // Perform the instruction action.
@@ -161,7 +166,7 @@ function CDGDecoder(canvasEl, borderEl) {
 
   // Reset the state of all font/blocks to clean.
   function clear_dirty_blocks() {
-    for (let blk = 0; blk < 900; blk++) {
+    for (let blk = 0; blk < CDG_ENUM.NUM_X_FONTS * CDG_ENUM.NUM_Y_FONTS; blk++) {
       internal_dirty_blocks[blk] = 0x00;
     }
   }
@@ -202,17 +207,15 @@ function CDGDecoder(canvasEl, borderEl) {
     const local_rgba = internal_rgba_imagedata.data;
     const local_pal = internal_palette;
     const local_vram = internal_vram;
-    const vis_width = 48;
-    const vis_height = CDG_ENUM.VISIBLE_HEIGHT;
 
-    let vram_loc = 601;
+    let vram_loc = CDG_ENUM.NUM_X_FONTS * CDG_ENUM.FONT_HEIGHT + 1;  // Skip the top offscreen row and left border column.
     let rgb_loc = 0x00;
 
-    for (let y_pxl = 0; y_pxl < vis_height; ++y_pxl) {
-      for (let x_pxl = 0; x_pxl < vis_width; ++x_pxl) {
+    for (let y_pxl = 0; y_pxl < CDG_ENUM.VISIBLE_HEIGHT; ++y_pxl) {
+      for (let x_pxl = 0; x_pxl < CDG_ENUM.VISIBLE_X_FONTS; ++x_pxl) {
         rgb_loc = write_line_segment(local_rgba, rgb_loc, local_pal, local_vram[vram_loc++]);
       }
-      vram_loc += 2;  // Skip the offscreen font blocks.
+      vram_loc += CDG_ENUM.NUM_X_FONTS - CDG_ENUM.VISIBLE_X_FONTS;  // Skip the offscreen font blocks.
     }
   }
 
@@ -256,9 +259,9 @@ function CDGDecoder(canvasEl, borderEl) {
   function proc_LOAD_CLUT(cdg_pack) {
     const local_palette = internal_palette;
     // If instruction is 0x1E then 8*0=0, if 0x1F then 8*1=8 for offset.
-    const pal_offset = (cdg_pack.charCodeAt(1) & 0x01) * 8;
+    const pal_offset = (cdg_pack.charCodeAt(1) & 0x01) * CDG_ENUM.CLUT_ENTRIES;
     // Step through the eight color indices, setting the RGB values.
-    for (let pal_inc = 0; pal_inc < 8; pal_inc++) {
+    for (let pal_inc = 0; pal_inc < CDG_ENUM.CLUT_ENTRIES; pal_inc++) {
       const temp_idx = pal_inc + pal_offset;
       let temp_rgb = 0x00000000;
       let temp_entry = 0x00000000;
@@ -296,15 +299,15 @@ function CDGDecoder(canvasEl, borderEl) {
       const y_location = cdg_pack.charCodeAt(6) & 0x1F; // Get vertical font location.
 
       // Verify we're not going to overrun the boundaries (i.e. bad data from a scratched disc).
-      if ((x_location <= 49) && (y_location <= 17)) {
-        const start_pixel = y_location * 600 + x_location; // Location of first pixel of this font in linear VRAM.
+      if (x_location < CDG_ENUM.NUM_X_FONTS && y_location < CDG_ENUM.NUM_Y_FONTS) {
+        const start_pixel = y_location * CDG_ENUM.NUM_X_FONTS * CDG_ENUM.FONT_HEIGHT + x_location; // Location of first pixel of this font in linear VRAM.
         // NOTE: Profiling indicates charCodeAt() uses ~80% of the CPU consumed for this function.
         // Caching these values reduces that to a negligible amount.
         const current_indexes = [(cdg_pack.charCodeAt(4) & 0x0F), (cdg_pack.charCodeAt(5) & 0x0F)]; // Current colors.
         let current_row = 0x00; // Subcode byte for current pixel row.
         let temp_pxl = 0x00; // Decoded and packed 4bit pixel index values of current row.
-        for (let y_inc = 0; y_inc < 12; y_inc++) {
-          const pix_pos = y_inc * 50 + start_pixel;      // Location of the first pixel of this row in linear VRAM.
+        for (let y_inc = 0; y_inc < CDG_ENUM.FONT_HEIGHT; y_inc++) {
+          const pix_pos = y_inc * CDG_ENUM.NUM_X_FONTS + start_pixel;  // Location of the first pixel of this row in linear VRAM.
           current_row = cdg_pack.charCodeAt(y_inc + 8);  // Get the subcode byte for the current row.
           temp_pxl = (current_indexes[(current_row >> 5) & 0x01] << 0);
           temp_pxl |= (current_indexes[(current_row >> 4) & 0x01] << 4);
@@ -319,7 +322,7 @@ function CDGDecoder(canvasEl, borderEl) {
           }
         } // End of Y loop.
         // Mark this block as needing an update.
-        local_dirty[y_location * 50 + x_location] = 0x01;
+        local_dirty[y_location * CDG_ENUM.NUM_X_FONTS + x_location] = 0x01;
       } // End of location check.
     } // End of channel check.
   }
@@ -344,28 +347,29 @@ function CDGDecoder(canvasEl, borderEl) {
     let x_src, y_src, y_start, buf = 0;
     const line_color = fill_line_with_palette_index(color);
     const local_vram = internal_vram;
+    const vram_size = CDG_ENUM.NUM_X_FONTS * CDG_ENUM.VRAM_HEIGHT;
     if (direction == 0x02) {
       // Step through the lines one at a time...
-      for (y_src = 0; y_src < (50 * 216); y_src += 50) {
+      for (y_src = 0; y_src < vram_size; y_src += CDG_ENUM.NUM_X_FONTS) {
         y_start = y_src;
         buf = local_vram[y_start];
-        for (x_src = y_start + 1; x_src < y_start + 50; x_src++) {
+        for (x_src = y_start + 1; x_src < y_start + CDG_ENUM.NUM_X_FONTS; x_src++) {
           local_vram[x_src - 1] = local_vram[x_src];
         }
         if (copy_flag) {
-          local_vram[y_start + 49] = buf;
+          local_vram[y_start + CDG_ENUM.NUM_X_FONTS - 1] = buf;
         } else {
-          local_vram[y_start + 49] = line_color;
+          local_vram[y_start + CDG_ENUM.NUM_X_FONTS - 1] = line_color;
         }
       }
     }
     else if (direction == 0x01) {
-      // Step through the lines on at a time.
-      for (y_src = 0; y_src < (50 * 216); y_src += 50) {
-        // Copy the last six lines to the buffer.
+      // Step through the lines one at a time.
+      for (y_src = 0; y_src < vram_size; y_src += CDG_ENUM.NUM_X_FONTS) {
+        // Copy the last element to the buffer.
         y_start = y_src;
-        buf = local_vram[y_start + 49];
-        for (x_src = y_start + 48; x_src >= y_start; x_src--) {
+        buf = local_vram[y_start + CDG_ENUM.NUM_X_FONTS - 1];
+        for (x_src = y_start + CDG_ENUM.NUM_X_FONTS - 2; x_src >= y_start; x_src--) {
           local_vram[x_src + 1] = local_vram[x_src];
         }
         if (copy_flag) {
@@ -380,20 +384,22 @@ function CDGDecoder(canvasEl, borderEl) {
   function proc_VRAM_VSCROLL(direction, copy_flag, color) {
     let dst_idx, src_idx;
     const offscreen_size = CDG_ENUM.NUM_X_FONTS * CDG_ENUM.FONT_HEIGHT;
+    const vram_size = CDG_ENUM.NUM_X_FONTS * CDG_ENUM.VRAM_HEIGHT;
+    const scroll_start = CDG_ENUM.NUM_X_FONTS * (CDG_ENUM.VRAM_HEIGHT - CDG_ENUM.FONT_HEIGHT);
     const buf = new Array(offscreen_size);
     const line_color = fill_line_with_palette_index(color);
     const local_vram = internal_vram;
     if (direction == 0x02) {
       dst_idx = 0;  // Buffer destination starts at 0.
-      // Copy the top 300x12 pixels into the buffer.
+      // Copy the top offscreen row into the buffer.
       for (src_idx = 0; src_idx < offscreen_size; src_idx++) {
         buf[dst_idx++] = local_vram[src_idx];
       }
       dst_idx = 0; // Destination starts at the first line.
-      for (src_idx = offscreen_size; src_idx < (50 * 216); src_idx++) {
+      for (src_idx = offscreen_size; src_idx < vram_size; src_idx++) {
         local_vram[dst_idx++] = local_vram[src_idx];
       }
-      dst_idx = (CDG_ENUM.NUM_X_FONTS * 204); // Destination begins at line 204.
+      dst_idx = scroll_start; // Destination begins at the last font row.
       if (copy_flag) {
         for (src_idx = 0; src_idx < offscreen_size; src_idx++) {
           local_vram[dst_idx++] = buf[src_idx];
@@ -407,11 +413,11 @@ function CDGDecoder(canvasEl, borderEl) {
     }
     else if (direction == 0x01) {
       dst_idx = 0;  // Buffer destination starts at 0.
-      // Copy the bottom 300x12 pixels into the buffer.
-      for (src_idx = (50 * 204); src_idx < (50 * 216); src_idx++) {
+      // Copy the bottom offscreen row into the buffer.
+      for (src_idx = scroll_start; src_idx < vram_size; src_idx++) {
         buf[dst_idx++] = local_vram[src_idx];
       }
-      for (src_idx = (50 * 204) - 1; src_idx > 0; src_idx--) {
+      for (src_idx = scroll_start - 1; src_idx > 0; src_idx--) {
         local_vram[src_idx + offscreen_size] = local_vram[src_idx];
       }
       if (copy_flag) {
@@ -436,6 +442,9 @@ function CDGDecoder(canvasEl, borderEl) {
 }
 
 function CDGPlayer(containerId, initOptions) {
+
+  const UPDATE_INTERVAL_MS = 20;  // Canvas refresh rate.
+  const SMOOTHING_PACKS = 6;      // Look-ahead buffer for smooth audio/graphics sync.
 
   const defaults = {
     mediaPath: '',
@@ -480,16 +489,16 @@ function CDGPlayer(containerId, initOptions) {
 
   function updatePlayPosition() {
     if (cdgData != null) {
-      let play_position = Math.floor(audioPlayer.currentTime * 300);
+      let play_position = Math.floor(audioPlayer.currentTime * CDG_ENUM.PACKS_PER_SECOND);
       let current_pack = cdgDecoder.get_current_pack();
       let position_to_play;
       play_position = (play_position < 0) ? 0 : play_position;
       // Render from the beginning of the stream if a reverse seek of more than one second occurred.
-      if (play_position < (current_pack - 300)) {
+      if (play_position < (current_pack - CDG_ENUM.PACKS_PER_SECOND)) {
         cdgDecoder.reset_cdg_state();
         current_pack = 0;
       }
-      position_to_play = current_pack + 6;
+      position_to_play = current_pack + SMOOTHING_PACKS;
       // Jump to the actual play position if it's ahead of our calculated smoothed position.
       position_to_play = (play_position > position_to_play) ? play_position : position_to_play;
       // Check if we should render any packs, and do so if needed.
@@ -501,7 +510,7 @@ function CDGPlayer(containerId, initOptions) {
   }
 
   function setCDGInterval() {
-    cdgIntervalID = setInterval(updatePlayPosition, 20);
+    cdgIntervalID = setInterval(updatePlayPosition, UPDATE_INTERVAL_MS);
   }
 
   function clearCDGInterval() {
@@ -601,8 +610,8 @@ function CDGPlayer(containerId, initOptions) {
     borderEl.id = containerId + "-border";
     borderEl.className = "cdg-border";
     canvasEl.id = containerId + "-canvas";
-    canvasEl.width = "288";
-    canvasEl.height = "192";
+    canvasEl.width = CDG_ENUM.VISIBLE_WIDTH;
+    canvasEl.height = CDG_ENUM.VISIBLE_HEIGHT;
     canvasEl.className = "cdg-canvas";
     audioPlayer.id = containerId + "-audio";
     audioPlayer.className = "cdg-audio";
