@@ -511,10 +511,12 @@ function CDGPlayer(containerId, initOptions) {
   let cdgDecoder = null;
 
   function emit(event, ...args) {
-    if (listeners[event]) {
+    if (listeners[event] && listeners[event].length > 0) {
       for (const handler of listeners[event]) {
         handler(...args);
       }
+    } else if (event === 'error') {
+      console.error(...args);
     }
   }
 

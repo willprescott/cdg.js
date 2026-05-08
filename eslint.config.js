@@ -12,10 +12,11 @@ module.exports = defineConfig([
       ecmaVersion: 2022,
       sourceType: "module",
       globals: {
+        console: "readonly",
         document: "readonly",
+        fetch: "readonly",
         setInterval: "readonly",
         clearInterval: "readonly",
-        fetch: "readonly",
       },
     },
     rules: {},
