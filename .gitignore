@@ -2,6 +2,7 @@
 .project
 .settings
 .buildpath
+.DS_Store
 nbproject
 bower_components/
 coverage/
