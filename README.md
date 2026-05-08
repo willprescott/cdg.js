@@ -1,19 +1,16 @@
 # cdg.js
 
-[![Bower version](https://img.shields.io/bower/v/cdg.js.svg)](http://bower.io)
-
 cdg.js is a JavaScript library for playing CD+G karaoke files in a web browser.
 
 The core of the library is derived from the awesome 
 [CD+Graphics Magic HTML5 CD+G Player](http://cdgmagic.sourceforge.net/html5_cdgplayer/), to which full credit is given.
 
-It is currently packaged as an AMD module as that was the environment of my primary use-case, but may support other
-module types later. It has no other library dependencies.
+It is now packaged as an ES module (previously an AMD module) to take advantage of modern browser module loading capabilities. Migration should be straightforward if you were previously using the AMD module - see the [example](./example) directory for updated implementation instructions.
 
 ## Usage
 
 See the files in the [example](./example) directory for a working demo implementation. You will need to provide your
-own CDG file and accompanying audio file for the demo to work (the example uses 2 files named `demo.cdg` and `demo.mp3`.
+own CDG file and accompanying audio file for the demo to work (the example uses 2 files named `demo.cdg` and `demo.mp3`).
 
 ### Code examples
 
@@ -23,10 +20,10 @@ Simply provide an empty container element in your HTML source with an ID:
 <div id="cdg"></div>
 ```
 
-And then, having required the cdg module, create a player instance, passing the ID of your element as the first argument:
+And then, having imported the cdg module, create a player instance, passing the ID of your element as the first argument:
 
 ```javascript
-var player = cdg.init("cdg", {autoplay: false, showControls: true});
+const player = init("cdg", {autoplay: false, showControls: true});
 ```
 
 This initialises the player variable with an instance of a `CDGPlayer` object which can then be interacted with for
@@ -39,7 +36,7 @@ player.play();
 
 ## API
 
-### cdg.init(containerId[, initOptions])
+### init(containerId[, initOptions])
 
 Create a CDGPlayer instance and append it to the element specified by `containerId`.
 

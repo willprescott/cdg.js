@@ -1,6 +1,6 @@
-import { init } from '../dist/cdg.js';
+import { init } from "../dist/cdg.js";
 
-const player = init("cdg", {autoplay: false, showControls: true});
+const player = init("cdg", { autoplay: false, showControls: true });
 /*
  player.loadTrack() accepts either a string (containing just a filename prefix) or an object for
  more fine-grained control.
@@ -20,24 +20,26 @@ const player = init("cdg", {autoplay: false, showControls: true});
  cdgFileExtension: 'cdg' // default is 'cdg'
  });
  */
-player.loadTrack('demo');
+player.loadTrack("demo");
 
 // The player also exposes play(), pause() and stop() methods which can be easily bound to event handlers
 
-document.getElementById("playbtn").addEventListener("click", function() {
+document.getElementById("playbtn").addEventListener("click", function () {
   player.play();
 });
-document.getElementById("pausebtn").addEventListener("click", function() {
+document.getElementById("pausebtn").addEventListener("click", function () {
   player.pause();
 });
-document.getElementById("stopbtn").addEventListener("click", function() {
+document.getElementById("stopbtn").addEventListener("click", function () {
   player.stop();
 });
 
-// Example fullscreen support provided by screenfull.js: https://github.com/sindresorhus/screenfull.js
-const rgbaCanvas = document.getElementById("cdg-canvas");
-rgbaCanvas.addEventListener("dblclick", function(e) {
-  if (screenfull.enabled) {
-    screenfull.request(e.target);
+// Example fullscreen support using the browser's fullscreen API
+const cdgCanvas = document.getElementById("cdg-canvas");
+cdgCanvas.addEventListener("dblclick", function (e) {
+  if (!document.fullscreenElement) {
+    e.target.requestFullscreen();
+  } else {
+    document.exitFullscreen?.();
   }
 });
