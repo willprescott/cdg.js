@@ -1,9 +1,8 @@
-const { series, src, dest } = require("gulp");
+const { series, src } = require("gulp");
 const fs = require("fs");
 const clean = require("gulp-clean");
 const eslint = require("gulp-eslint-new");
-const licenser = require("gulp-licenser");
-const requirejsOptimize = require("gulp-requirejs-optimize");
+const esbuild = require("esbuild");
 const license = fs.readFileSync("./src/banner.txt", "utf8");
 
 function cleanOutput() {
@@ -17,11 +16,16 @@ function lint() {
     .pipe(eslint.failAfterError());
 }
 
-function scripts() {
-  return src("./src/cdg.js", { sourcemaps: true })
-    .pipe(requirejsOptimize())
-    .pipe(licenser(license))
-    .pipe(dest("dist", { sourcemaps: "." }));
+async function scripts() {
+  await esbuild.build({
+    entryPoints: ["./src/cdg.js"],
+    bundle: true,
+    minify: true,
+    format: "esm",
+    outfile: "./dist/cdg.js",
+    banner: { js: license },
+    sourcemap: true,
+  });
 }
 
 exports.cleanOutput = series(cleanOutput);
