@@ -8,6 +8,16 @@ module.exports = defineConfig([
       js,
     },
     extends: ["js/recommended"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: {
+        document: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        XMLHttpRequest: "readonly",
+      },
+    },
     rules: {},
   },
 ]);
