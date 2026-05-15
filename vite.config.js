@@ -4,6 +4,9 @@ import { readFileSync } from "fs";
 const banner = readFileSync("./src/banner.txt", "utf8");
 
 export default defineConfig({
+  test: {
+    environment: "node",
+  },
   build: {
     lib: {
       entry: "./src/cdg.js",

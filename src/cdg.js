@@ -771,3 +771,5 @@ function CDGPlayer(containerId, initOptions) {
 export function init(containerId, initOptions) {
   return new CDGPlayer(containerId, initOptions);
 }
+
+export { CDGDecoder };

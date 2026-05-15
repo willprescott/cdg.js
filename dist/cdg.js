@@ -274,6 +274,6 @@ function r(e, t) {
 	return new n(e, t);
 }
 //#endregion
-export { r as init };
+export { t as CDGDecoder, r as init };
 
 //# sourceMappingURL=cdg.js.map
