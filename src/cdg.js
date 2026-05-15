@@ -664,6 +664,22 @@ function CDGPlayer(containerId, initOptions) {
     return this;
   }
 
+  function toggleFullscreen(e) {
+    if (!document.fullscreenElement) {
+      e.target.requestFullscreen();
+    } else {
+      document.exitFullscreen?.();
+    }
+  }
+
+  function togglePlay() {
+    if (audioPlayer.paused) {
+      audioPlayer.play();
+    } else {
+      audioPlayer.pause();
+    }
+  }
+
   function init(containerId, initOptions) {
     if (!containerId) {
       throw new Error("Required initialisation parameter missing.");
@@ -678,6 +694,12 @@ function CDGPlayer(containerId, initOptions) {
     canvasEl.width = CDG_ENUM.VISIBLE_WIDTH;
     canvasEl.height = CDG_ENUM.VISIBLE_HEIGHT;
     canvasEl.className = "cdg-canvas";
+    if (initOptions && initOptions.allowClickToPlay !== false) {
+      canvasEl.addEventListener("click", togglePlay, true);
+    }
+    if (initOptions && initOptions.allowFullscreen !== false) {
+      canvasEl.addEventListener("dblclick", toggleFullscreen, true);
+    }
     audioPlayer.id = containerId + "-audio";
     audioPlayer.className = "cdg-audio";
     borderEl.appendChild(canvasEl);
