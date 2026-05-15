@@ -73,7 +73,7 @@ function CDGDecoder(canvasEl, borderEl) {
   let screenDirty = false; // State variable used to determine if a full screen update is needed.
   const dirtyBlocks = new Array(CDG_ENUM.NUM_X_FONTS * CDG_ENUM.NUM_Y_FONTS); // Array used to determine if a given font/block has changed.
 
-  // Reset all the CDG state variables back to initial values.
+  /** Resets all decoder state to initial values (pack counter, palette, VRAM, dirty flags). */
   function resetCdgState() {
     currentPack = 0x00;
     borderIndex = 0x00;
@@ -82,10 +82,12 @@ function CDGDecoder(canvasEl, borderEl) {
     clearDirtyBlocks();
   }
 
+  /** @returns {number} The index of the last decoded CDG pack. */
   function getCurrentPack() {
     return currentPack;
   }
 
+  /** Flushes any pending state changes to the canvas and border element. */
   function redrawCanvas() {
     // If the border color has changed, then update the background div color.
     if (borderDirty || screenDirty) {
@@ -128,7 +130,11 @@ function CDGDecoder(canvasEl, borderEl) {
     }
   }
 
-  // Decode to pack playbackPosition, using cdgFileData.
+  /**
+   * Decodes CDG packs up to the given position.
+   * @param {string} cdgFileData - Raw CDG file contents as a binary string
+   * @param {number} playbackPosition - Pack index to decode up to (exclusive)
+   */
   function decodePacks(cdgFileData, playbackPosition) {
     for (let currPack = currentPack; currPack < playbackPosition; currPack++) {
       const startOffset = currPack * CDG_ENUM.PACK_SIZE;
