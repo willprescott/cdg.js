@@ -7,13 +7,13 @@ export default defineConfig({
   build: {
     lib: {
       entry: "./src/cdg.js",
-      formats: ["es"],
       fileName: "cdg",
+      formats: ["es"],
     },
     sourcemap: true,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        banner,
+        banner: banner,
       },
     },
   },
