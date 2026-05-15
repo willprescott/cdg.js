@@ -516,14 +516,43 @@ function CDGPlayer(containerId, initOptions) {
   let cdgData = null;
   let cdgDecoder = null;
 
-  function emit(event, ...args) {
-    if (listeners[event] && listeners[event].length > 0) {
-      for (const handler of listeners[event]) {
-        handler(...args);
-      }
-    } else if (event === "error") {
-      console.error(...args);
+  /**
+   * Loads a CDG track into the player.
+   * @param {string|TrackOptions} trackOptions - Track filename prefix or full options object
+   * @returns {Promise<CDGPlayer>}
+   */
+  async function loadTrack(trackOptions) {
+    const trackInfo = parseTrackOptions(trackOptions);
+    clearCDGInterval();
+    cdgDecoder.resetCdgState();
+    cdgDecoder.redrawCanvas();
+    cdgData = null;
+    if (audioSourceElement == null) {
+      audioSourceElement = document.createElement("source");
     }
+    audioSourceElement.type = audioTypes[trackInfo.audioFormat];
+    audioSourceElement.src =
+      trackInfo.mediaPath +
+      trackInfo.audioFilePrefix +
+      "." +
+      trackInfo.audioFormat;
+    audioPlayer.appendChild(audioSourceElement);
+    audioPlayer.load();
+    try {
+      const cdgUrl =
+        trackInfo.mediaPath +
+        trackInfo.cdgFilePrefix +
+        "." +
+        trackInfo.cdgFileExtension;
+      const response = await fetch(cdgUrl);
+      if (!response.ok) {
+        throw new Error(`CDG file failed to load: ${response.status}`);
+      }
+      cdgData = await response.text();
+    } catch (error) {
+      emit("error", error);
+    }
+    return this;
   }
 
   /**
@@ -538,6 +567,32 @@ function CDGPlayer(containerId, initOptions) {
     }
     listeners[event].push(handler);
     return this;
+  }
+
+  /** @returns {void} */
+  function pause() {
+    audioPlayer.pause();
+  }
+
+  /** @returns {void} */
+  function play() {
+    audioPlayer.play();
+  }
+
+  /** @returns {void} */
+  function stop() {
+    audioPlayer.pause();
+    audioPlayer.currentTime = 0;
+  }
+
+  function emit(event, ...args) {
+    if (listeners[event] && listeners[event].length > 0) {
+      for (const handler of listeners[event]) {
+        handler(...args);
+      }
+    } else if (event === "error") {
+      console.error(...args);
+    }
   }
 
   function handleAudioError() {
@@ -585,22 +640,6 @@ function CDGPlayer(containerId, initOptions) {
 
   function clearCDGInterval() {
     clearInterval(cdgIntervalID);
-  }
-
-  /** @returns {void} */
-  function play() {
-    audioPlayer.play();
-  }
-
-  /** @returns {void} */
-  function pause() {
-    audioPlayer.pause();
-  }
-
-  /** @returns {void} */
-  function stop() {
-    audioPlayer.pause();
-    audioPlayer.currentTime = 0;
   }
 
   function parseTrackOptions(trackOptions) {
@@ -652,45 +691,6 @@ function CDGPlayer(containerId, initOptions) {
       audioFormat: audioFormat,
       cdgFileExtension: cdgFileExtension,
     };
-  }
-
-  /**
-   * Loads a CDG track into the player.
-   * @param {string|TrackOptions} trackOptions - Track filename prefix or full options object
-   * @returns {Promise<CDGPlayer>}
-   */
-  async function loadTrack(trackOptions) {
-    const trackInfo = parseTrackOptions(trackOptions);
-    clearCDGInterval();
-    cdgDecoder.resetCdgState();
-    cdgDecoder.redrawCanvas();
-    cdgData = null;
-    if (audioSourceElement == null) {
-      audioSourceElement = document.createElement("source");
-    }
-    audioSourceElement.type = audioTypes[trackInfo.audioFormat];
-    audioSourceElement.src =
-      trackInfo.mediaPath +
-      trackInfo.audioFilePrefix +
-      "." +
-      trackInfo.audioFormat;
-    audioPlayer.appendChild(audioSourceElement);
-    audioPlayer.load();
-    try {
-      const cdgUrl =
-        trackInfo.mediaPath +
-        trackInfo.cdgFilePrefix +
-        "." +
-        trackInfo.cdgFileExtension;
-      const response = await fetch(cdgUrl);
-      if (!response.ok) {
-        throw new Error(`CDG file failed to load: ${response.status}`);
-      }
-      cdgData = await response.text();
-    } catch (error) {
-      emit("error", error);
-    }
-    return this;
   }
 
   function toggleFullscreen(e) {
@@ -763,9 +763,9 @@ function CDGPlayer(containerId, initOptions) {
 }
 
 /**
- * Creates and initializes a new CDG karaoke player.
+ * Creates and initialises a new CDG karaoke player.
  * @param {string} containerId - ID of the DOM element that will contain the player
- * @param {InitOptions} [initOptions] - Player initialization options
+ * @param {InitOptions} [initOptions] - Player initialisation options
  * @returns {CDGPlayer}
  */
 export function init(containerId, initOptions) {
