@@ -38,7 +38,7 @@ player.play();
 
 ### init(containerId[, initOptions])
 
-Create a CDGPlayer instance and append it to the element specified by `containerId`.
+Creates and returns a CDGPlayer instance, appending it to the element specified by `containerId`.
 
 #### containerID
 
@@ -89,13 +89,19 @@ player.loadTrack({
 });
 ```
 
-### CDGPlayer.play()
+### CDGPlayer.on(event, listener)
 
-Play the currently loaded track.
+Add an event listener for the specified event. `event` can currently be one of the following: 
+* `ended`
+* `error`
 
 ### CDGPlayer.pause()
 
 Pause the currently playing track, preserving play position.
+
+### CDGPlayer.play()
+
+Play the currently loaded track.
 
 ### CDGPlayer.stop()
 
