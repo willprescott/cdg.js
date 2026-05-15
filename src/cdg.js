@@ -58,7 +58,6 @@ const CDG_ENUM = {
 };
 
 function CDGDecoder(canvasEl, borderEl) {
-  const borderDiv = borderEl; // DIV element behind graphics canvas.
   const rgbaContext = canvasEl.getContext("2d"); // 2D context of canvas element.
   const rgbaImageData = rgbaContext.createImageData(
     CDG_ENUM.VISIBLE_WIDTH,
@@ -90,7 +89,7 @@ function CDGDecoder(canvasEl, borderEl) {
   function redrawCanvas() {
     // If the border color has changed, then update the background div color.
     if (borderDirty || screenDirty) {
-      borderDiv.style.backgroundColor = paletteIndexToRgbTuple(borderIndex);
+      borderEl.style.backgroundColor = paletteIndexToRgbTuple(borderIndex);
       borderDirty = false;
     }
 
