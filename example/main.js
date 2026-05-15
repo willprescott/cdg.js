@@ -13,14 +13,19 @@ const player = init("cdg", { autoplay: false, showControls: true });
  Other options can be customised like this:
 
  player.loadTrack({
- audioFilePrefix: 'demo', // prefix of the audio file. Required
- cdgFilePrefix: 'demo', // prefix of the CDG file. Optional, defaults to audioFilePrefix value
- mediaPath: './', // the path to the directory containing the CDG and audio files. Default: './'
- audioFormat: 'mp3', // 'mp3' or 'ogg' are supported, default is 'mp3'
- cdgFileExtension: 'cdg' // default is 'cdg'
+    audioFilePrefix: 'demo', // prefix of the audio file. Required
+    cdgFilePrefix: 'demo', // prefix of the CDG file. Optional, defaults to audioFilePrefix value
+    mediaPath: './', // the path to the directory containing the CDG and audio files. Default: './'
+    audioFormat: 'mp3', // 'mp3' or 'ogg' are supported, default is 'mp3'
+    cdgFileExtension: 'cdg' // default is 'cdg'
  });
  */
 player.loadTrack("demo");
+
+// Example of handling the 'ended' event to do something when the track finishes
+player.on("ended", () => {
+  console.log("Track ended!");
+});
 
 // The player also exposes play(), pause() and stop() methods which can be easily bound to event handlers
 
