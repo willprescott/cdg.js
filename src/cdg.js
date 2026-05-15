@@ -17,6 +17,21 @@
  *  along with CD+Graphics Magic. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * @typedef {Object} TrackOptions
+ * @property {string} audioFilePrefix - Prefix of the audio file (required)
+ * @property {string} [cdgFilePrefix] - Prefix of the CDG file; defaults to audioFilePrefix
+ * @property {string} [mediaPath=''] - Path to the directory containing media files
+ * @property {'mp3'|'ogg'} [audioFormat='mp3'] - Audio format
+ * @property {string} [cdgFileExtension='cdg'] - CDG file extension
+ */
+
+/**
+ * @typedef {Object} InitOptions
+ * @property {boolean} [autoplay=true] - Start playing automatically when a track is loaded
+ * @property {boolean} [showControls=true] - Show native audio controls
+ */
+
 const CDG_ENUM = {
   VRAM_HEIGHT: 216, // Height of VRAM, in pixels.
   VISIBLE_WIDTH: 288, // Width (or pitch) of visible screen, in pixels.
@@ -511,6 +526,12 @@ function CDGPlayer(containerId, initOptions) {
     }
   }
 
+  /**
+   * Registers an event handler on the player.
+   * @param {string} event - Event name ('error')
+   * @param {Function} handler - Handler function
+   * @returns {CDGPlayer}
+   */
   function on(event, handler) {
     if (!listeners[event]) {
       listeners[event] = [];
@@ -566,14 +587,17 @@ function CDGPlayer(containerId, initOptions) {
     clearInterval(cdgIntervalID);
   }
 
+  /** @returns {void} */
   function play() {
     audioPlayer.play();
   }
 
+  /** @returns {void} */
   function pause() {
     audioPlayer.pause();
   }
 
+  /** @returns {void} */
   function stop() {
     audioPlayer.pause();
     audioPlayer.currentTime = 0;
@@ -630,6 +654,11 @@ function CDGPlayer(containerId, initOptions) {
     };
   }
 
+  /**
+   * Loads a CDG track into the player.
+   * @param {string|TrackOptions} trackOptions - Track filename prefix or full options object
+   * @returns {Promise<CDGPlayer>}
+   */
   async function loadTrack(trackOptions) {
     const trackInfo = parseTrackOptions(trackOptions);
     clearCDGInterval();
@@ -733,6 +762,12 @@ function CDGPlayer(containerId, initOptions) {
   this.on = on;
 }
 
+/**
+ * Creates and initializes a new CDG karaoke player.
+ * @param {string} containerId - ID of the DOM element that will contain the player
+ * @param {InitOptions} [initOptions] - Player initialization options
+ * @returns {CDGPlayer}
+ */
 export function init(containerId, initOptions) {
   return new CDGPlayer(containerId, initOptions);
 }
