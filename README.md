@@ -54,6 +54,8 @@ Optional initialisation options for the main player control
 
 ```javascript
 {
+  allowClickToPlay: true, // Boolean. Allow clicking on the canvas to toggle play/pause. Default: true
+  allowFullscreen: true, // Boolean. Allow fullscreen mode to be toggled via double-click on the canvas. Default: true
   autoplay: true // Boolean. Make tracks loaded into the player play automatically. Default: true
   controls: true // Boolean. Show playback controls/timeline on the player. Default: true
 }

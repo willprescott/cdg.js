@@ -38,13 +38,3 @@ document.getElementById("pausebtn").addEventListener("click", () => {
 document.getElementById("stopbtn").addEventListener("click", () => {
   player.stop();
 });
-
-// Example fullscreen support using the browser's fullscreen API
-const cdgCanvas = document.getElementById("cdg-canvas");
-cdgCanvas.addEventListener("dblclick", (e) => {
-  if (!document.fullscreenElement) {
-    e.target.requestFullscreen();
-  } else {
-    document.exitFullscreen?.();
-  }
-});
