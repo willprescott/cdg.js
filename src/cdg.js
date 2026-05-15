@@ -17,6 +17,21 @@
  *  along with CD+Graphics Magic. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * @typedef {Object} TrackOptions
+ * @property {string} audioFilePrefix - Prefix of the audio file (required)
+ * @property {string} [cdgFilePrefix] - Prefix of the CDG file; defaults to audioFilePrefix
+ * @property {string} [mediaPath=''] - Path to the directory containing media files
+ * @property {'mp3'|'ogg'} [audioFormat='mp3'] - Audio format
+ * @property {string} [cdgFileExtension='cdg'] - CDG file extension
+ */
+
+/**
+ * @typedef {Object} InitOptions
+ * @property {boolean} [autoplay=true] - Start playing automatically when a track is loaded
+ * @property {boolean} [showControls=true] - Show native audio controls
+ */
+
 const CDG_ENUM = {
   VRAM_HEIGHT: 216, // Height of VRAM, in pixels.
   VISIBLE_WIDTH: 288, // Width (or pitch) of visible screen, in pixels.
@@ -501,6 +516,75 @@ function CDGPlayer(containerId, initOptions) {
   let cdgData = null;
   let cdgDecoder = null;
 
+  /**
+   * Loads a CDG track into the player.
+   * @param {string|TrackOptions} trackOptions - Track filename prefix or full options object
+   * @returns {Promise<CDGPlayer>}
+   */
+  async function loadTrack(trackOptions) {
+    const trackInfo = parseTrackOptions(trackOptions);
+    clearCDGInterval();
+    cdgDecoder.resetCdgState();
+    cdgDecoder.redrawCanvas();
+    cdgData = null;
+    if (audioSourceElement == null) {
+      audioSourceElement = document.createElement("source");
+    }
+    audioSourceElement.type = audioTypes[trackInfo.audioFormat];
+    audioSourceElement.src =
+      trackInfo.mediaPath +
+      trackInfo.audioFilePrefix +
+      "." +
+      trackInfo.audioFormat;
+    audioPlayer.appendChild(audioSourceElement);
+    audioPlayer.load();
+    try {
+      const cdgUrl =
+        trackInfo.mediaPath +
+        trackInfo.cdgFilePrefix +
+        "." +
+        trackInfo.cdgFileExtension;
+      const response = await fetch(cdgUrl);
+      if (!response.ok) {
+        throw new Error(`CDG file failed to load: ${response.status}`);
+      }
+      cdgData = await response.text();
+    } catch (error) {
+      emit("error", error);
+    }
+    return this;
+  }
+
+  /**
+   * Registers an event handler on the player.
+   * @param {string} event - Event name ('error')
+   * @param {Function} handler - Handler function
+   * @returns {CDGPlayer}
+   */
+  function on(event, handler) {
+    if (!listeners[event]) {
+      listeners[event] = [];
+    }
+    listeners[event].push(handler);
+    return this;
+  }
+
+  /** @returns {void} */
+  function pause() {
+    audioPlayer.pause();
+  }
+
+  /** @returns {void} */
+  function play() {
+    audioPlayer.play();
+  }
+
+  /** @returns {void} */
+  function stop() {
+    audioPlayer.pause();
+    audioPlayer.currentTime = 0;
+  }
+
   function emit(event, ...args) {
     if (listeners[event] && listeners[event].length > 0) {
       for (const handler of listeners[event]) {
@@ -509,14 +593,6 @@ function CDGPlayer(containerId, initOptions) {
     } else if (event === "error") {
       console.error(...args);
     }
-  }
-
-  function on(event, handler) {
-    if (!listeners[event]) {
-      listeners[event] = [];
-    }
-    listeners[event].push(handler);
-    return this;
   }
 
   function handleAudioError() {
@@ -564,19 +640,6 @@ function CDGPlayer(containerId, initOptions) {
 
   function clearCDGInterval() {
     clearInterval(cdgIntervalID);
-  }
-
-  function play() {
-    audioPlayer.play();
-  }
-
-  function pause() {
-    audioPlayer.pause();
-  }
-
-  function stop() {
-    audioPlayer.pause();
-    audioPlayer.currentTime = 0;
   }
 
   function parseTrackOptions(trackOptions) {
@@ -628,40 +691,6 @@ function CDGPlayer(containerId, initOptions) {
       audioFormat: audioFormat,
       cdgFileExtension: cdgFileExtension,
     };
-  }
-
-  async function loadTrack(trackOptions) {
-    const trackInfo = parseTrackOptions(trackOptions);
-    clearCDGInterval();
-    cdgDecoder.resetCdgState();
-    cdgDecoder.redrawCanvas();
-    cdgData = null;
-    if (audioSourceElement == null) {
-      audioSourceElement = document.createElement("source");
-    }
-    audioSourceElement.type = audioTypes[trackInfo.audioFormat];
-    audioSourceElement.src =
-      trackInfo.mediaPath +
-      trackInfo.audioFilePrefix +
-      "." +
-      trackInfo.audioFormat;
-    audioPlayer.appendChild(audioSourceElement);
-    audioPlayer.load();
-    try {
-      const cdgUrl =
-        trackInfo.mediaPath +
-        trackInfo.cdgFilePrefix +
-        "." +
-        trackInfo.cdgFileExtension;
-      const response = await fetch(cdgUrl);
-      if (!response.ok) {
-        throw new Error(`CDG file failed to load: ${response.status}`);
-      }
-      cdgData = await response.text();
-    } catch (error) {
-      emit("error", error);
-    }
-    return this;
   }
 
   function toggleFullscreen(e) {
@@ -733,6 +762,12 @@ function CDGPlayer(containerId, initOptions) {
   this.on = on;
 }
 
+/**
+ * Creates and initialises a new CDG karaoke player.
+ * @param {string} containerId - ID of the DOM element that will contain the player
+ * @param {InitOptions} [initOptions] - Player initialisation options
+ * @returns {CDGPlayer}
+ */
 export function init(containerId, initOptions) {
   return new CDGPlayer(containerId, initOptions);
 }
