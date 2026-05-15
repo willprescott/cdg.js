@@ -1,4 +1,4 @@
-name: NodeJS with Gulp
+name: NodeJS with Vite
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x, 24.x]
+        node-version: [22.x, 24.x, 25.x, 26.x]
 
     steps:
       - uses: actions/checkout@v3
@@ -27,6 +27,5 @@ jobs:
 
       - name: Build
         run: |
-          npm install -g gulp
           npm install
-          gulp lint
+          npm run lint

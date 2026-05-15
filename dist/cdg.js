@@ -1,7 +1,279 @@
-/*
- *  cdg.js - a CD+G player for the web, based upon CD+Graphics Magic HTML5 CD+G Player
- *  (http://cdgmagic.sourceforge.net/html5_cdgplayer/). Visit project for full license
- *  information and documentation: https://github.com/willprescott/cdg.js
- */
-var e={VRAM_HEIGHT:216,VISIBLE_WIDTH:288,VISIBLE_HEIGHT:192,FONT_WIDTH:6,FONT_HEIGHT:12,NUM_X_FONTS:50,NUM_Y_FONTS:18,VISIBLE_X_FONTS:48,VISIBLE_Y_FONTS:16,PALETTE_ENTRIES:16,CLUT_ENTRIES:8,PACK_SIZE:24,PACKS_PER_SECOND:300,TV_GRAPHICS:9,MEMORY_PRESET:1,BORDER_PRESET:2,LOAD_CLUT_LO:30,LOAD_CLUT_HI:31,COPY_FONT:6,XOR_FONT:38,SCROLL_PRESET:20,SCROLL_COPY:24};function z(A,g){let Y=g,R=A.getContext("2d"),h=R.createImageData(e.VISIBLE_WIDTH,e.VISIBLE_HEIGHT),I=new Array(e.PALETTE_ENTRIES),S=new Array(e.NUM_X_FONTS*e.VRAM_HEIGHT),c=0,m=0,O=!1,F=!1,C=new Array(e.NUM_X_FONTS*e.NUM_Y_FONTS);function D(){m=0,c=0,X(),p(0),M()}function U(){return m}function V(){if((O||F)&&(Y.style.backgroundColor=w(c),O=!1),F)G(),F=!1,M(),R.putImageData(h,0,0);else{let t=R,a=h,f=C,n=e.FONT_WIDTH,o=e.FONT_HEIGHT,r=0;for(let s=1;s<=e.VISIBLE_Y_FONTS;++s){r=s*e.NUM_X_FONTS+1;for(let T=1;T<=e.VISIBLE_X_FONTS;++T)f[r]&&(v(T,s),t.putImageData(a,0,0,(T-1)*n,(s-1)*o,n,o),f[r]=0),++r}}}function b(t,a){for(let f=m;f<a;f++){let n=f*e.PACK_SIZE;if((t.charCodeAt(n)&63)==e.TV_GRAPHICS){let r=t.slice(n,n+e.PACK_SIZE);switch(r.charCodeAt(1)&63){case e.MEMORY_PRESET:W(r);break;case e.BORDER_PRESET:B(r);break;case e.LOAD_CLUT_LO:case e.LOAD_CLUT_HI:l(r);break;case e.COPY_FONT:case e.XOR_FONT:i(r);break;case e.SCROLL_PRESET:case e.SCROLL_COPY:u(r);break}}}m=a}function w(t){return"rgb("+(I[t]>>16&255)+","+(I[t]>>8&255)+","+(I[t]>>0&255)+")"}function L(t){let a=t;return a|=t<<4,a|=t<<8,a|=t<<12,a|=t<<16,a|=t<<20,a}function M(){for(let t=0;t<e.NUM_X_FONTS*e.NUM_Y_FONTS;t++)C[t]=0}function X(){let t=e.PALETTE_ENTRIES;for(let a=0;a<t;a++)I[a]=0}function p(t){let a=S,f=a.length,n=L(t);for(let o=0;o<f;o++)a[o]=n;F=!0}function H(t,a,f,n){for(let o of[0,4,8,12,16,20]){let r=f[n>>o&15];t[a++]=r>>16&255,t[a++]=r>>8&255,t[a++]=r&255,t[a++]=255}return a}function G(){let t=h.data,a=I,f=S,n=e.NUM_X_FONTS*e.FONT_HEIGHT+1,o=0;for(let r=0;r<e.VISIBLE_HEIGHT;++r){for(let s=0;s<e.VISIBLE_X_FONTS;++s)o=H(t,o,a,f[n++]);n+=e.NUM_X_FONTS-e.VISIBLE_X_FONTS}}function v(t,a){let f=h.data,n=I,o=S,r=a*e.NUM_X_FONTS*e.FONT_HEIGHT+t,s=e.NUM_X_FONTS,T=r+e.NUM_X_FONTS*e.FONT_HEIGHT,d=(a-1)*e.FONT_HEIGHT*e.VISIBLE_WIDTH;d+=(t-1)*e.FONT_WIDTH,d*=4;let N=(e.VISIBLE_WIDTH-e.FONT_WIDTH)*4;for(;r<T;)d=H(f,d,n,o[r]),r+=s,d+=N}function B(t){let a=t.charCodeAt(4)&63;I[a]!=I[c]&&(O=!0),c=a}function W(t){p(t.charCodeAt(4)&63)}function l(t){let a=I,f=(t.charCodeAt(1)&1)*e.CLUT_ENTRIES;for(let n=0;n<e.CLUT_ENTRIES;n++){let o=n+f,r=0,s=0;s=(t.charCodeAt(n*2+4)&60)>>2,r|=s*17<<16,s=(t.charCodeAt(n*2+4)&3)<<2|(t.charCodeAt(n*2+5)&48)>>4,r|=s*17<<8,s=t.charCodeAt(n*2+5)&15,r|=s*17<<0,r!=a[o]&&(a[o]=r,F=!0,o==c&&(O=!0))}}function i(t){let a=S,f=C,n=3,o=(t.charCodeAt(4)&48)>>2|(t.charCodeAt(5)&48)>>4,r=t.charCodeAt(1)&32;if(n>>o){let s=t.charCodeAt(7)&63,T=t.charCodeAt(6)&31;if(s<e.NUM_X_FONTS&&T<e.NUM_Y_FONTS){let d=T*e.NUM_X_FONTS*e.FONT_HEIGHT+s,N=[t.charCodeAt(4)&15,t.charCodeAt(5)&15],_=0,P=0;for(let y=0;y<e.FONT_HEIGHT;y++){let K=y*e.NUM_X_FONTS+d;_=t.charCodeAt(y+8),P=N[_>>5&1]<<0,P|=N[_>>4&1]<<4,P|=N[_>>3&1]<<8,P|=N[_>>2&1]<<12,P|=N[_>>1&1]<<16,P|=N[_>>0&1]<<20,r?a[K]^=P:a[K]=P}f[T*e.NUM_X_FONTS+s]=1}}}function u(t){let a,f=(t.charCodeAt(1)&8)>>3,n=t.charCodeAt(4)&15;(a=(t.charCodeAt(5)&48)>>4)&&E(a,f,n),(a=(t.charCodeAt(6)&48)>>4)&&x(a,f,n),F=!0}function E(t,a,f){let n,o,r,s=0,T=L(f),d=S,N=e.NUM_X_FONTS*e.VRAM_HEIGHT;if(t==2)for(o=0;o<N;o+=e.NUM_X_FONTS){for(r=o,s=d[r],n=r+1;n<r+e.NUM_X_FONTS;n++)d[n-1]=d[n];a?d[r+e.NUM_X_FONTS-1]=s:d[r+e.NUM_X_FONTS-1]=T}else if(t==1)for(o=0;o<N;o+=e.NUM_X_FONTS){for(r=o,s=d[r+e.NUM_X_FONTS-1],n=r+e.NUM_X_FONTS-2;n>=r;n--)d[n+1]=d[n];a?d[r]=s:d[r]=T}}function x(t,a,f){let n,o,r=e.NUM_X_FONTS*e.FONT_HEIGHT,s=e.NUM_X_FONTS*e.VRAM_HEIGHT,T=e.NUM_X_FONTS*(e.VRAM_HEIGHT-e.FONT_HEIGHT),d=new Array(r),N=L(f),_=S;if(t==2){for(n=0,o=0;o<r;o++)d[n++]=_[o];for(n=0,o=r;o<s;o++)_[n++]=_[o];if(n=T,a)for(o=0;o<r;o++)_[n++]=d[o];else for(o=0;o<r;o++)_[n++]=N}else if(t==1){for(n=0,o=T;o<s;o++)d[n++]=_[o];for(o=T-1;o>0;o--)_[o+r]=_[o];if(a)for(o=0;o<r;o++)_[o]=d[o];else for(o=0;o<r;o++)_[o]=N}}this.getCurrentPack=U,this.resetCdgState=D,this.redrawCanvas=V,this.decodePacks=b,this.resetCdgState()}function j(A,g){let h={mediaPath:"",audioFormat:"mp3",cdgFileExtension:"cdg"},I={mp3:'audio/mpeg; codecs="mp3"',ogg:'audio/ogg; codecs="vorbis"'},S={},c=null,m=null,O=null,F=null,C=null;async function D(l){let i=G(l);H(),C.resetCdgState(),C.redrawCanvas(),F=null,m==null&&(m=document.createElement("source")),m.type=I[i.audioFormat],m.src=i.mediaPath+i.audioFilePrefix+"."+i.audioFormat,c.appendChild(m),c.load();try{let u=i.mediaPath+i.cdgFilePrefix+"."+i.cdgFileExtension,E=await fetch(u);if(!E.ok)throw new Error(`CDG file failed to load: ${E.status}`);F=await E.text()}catch(u){L("error",u)}return this}function U(l,i){return S[l]||(S[l]=[]),S[l].push(i),this}function V(){c.pause()}function b(){c.play()}function w(){c.pause(),c.currentTime=0}function L(l,...i){if(S[l]&&S[l].length>0)for(let u of S[l])u(...i);else l==="error"&&console.error(...i)}function M(){if(c.error){let l=c.error.code?c.error.code:c.error;L("error",new Error("The audio control fired an error event. Could be: "+l))}}function X(){if(F!=null){let l=Math.floor(c.currentTime*e.PACKS_PER_SECOND),i=C.getCurrentPack(),u;l=l<0?0:l,l<i-e.PACKS_PER_SECOND&&(C.resetCdgState(),i=0),u=i+6,u=l>u?l:u,u>i&&(C.decodePacks(F,u),C.redrawCanvas())}}function p(){O=setInterval(X,20)}function H(){clearInterval(O)}function G(l){if(!l||Array.isArray(l)||typeof l!="string"&&typeof l!="object")throw new Error("No track information specified, nothing to load!");let i,u,E=h.mediaPath,x=h.audioFormat,t=h.cdgFileExtension;if(typeof l=="object"){if(l.audioFilePrefix)i=l.audioFilePrefix;else throw new Error("No audioFilePrefix property defined, nothing to load!");if(u=l.cdgFilePrefix?l.cdgFilePrefix:l.audioFilePrefix,l.mediaPath&&(E=l.mediaPath),l.audioFormat){if(!I[l.audioFormat])throw new Error("Unsupported audio format specified");x=l.audioFormat}l.cdgFileExtension&&(t=l.cdgFileExtension)}else i=u=l;return{audioFilePrefix:i,cdgFilePrefix:u,mediaPath:E,audioFormat:x,cdgFileExtension:t}}function v(l){document.fullscreenElement?document.exitFullscreen?.():l.target.requestFullscreen()}function B(){c.paused?c.play():c.pause()}function W(l,i){if(!l)throw new Error("Required initialisation parameter missing.");let u=document.getElementById(l),E=document.createElement("div"),x=document.createElement("canvas");c=document.createElement("audio"),E.id=l+"-border",E.className="cdg-border",x.id=l+"-canvas",x.width=e.VISIBLE_WIDTH,x.height=e.VISIBLE_HEIGHT,x.className="cdg-canvas",i&&i.allowClickToPlay!==!1&&x.addEventListener("click",B,!0),i&&i.allowFullscreen!==!1&&x.addEventListener("dblclick",v,!0),c.id=l+"-audio",c.className="cdg-audio",E.appendChild(x),u.appendChild(E),u.appendChild(c),c.style.width=x.offsetWidth+"px",c.controls=!(i&&i.showControls==!1),c.autoplay=!(i&&i.autoplay==!1),c.addEventListener("error",M,!0),c.addEventListener("play",p,!0),c.addEventListener("pause",H,!0),c.addEventListener("abort",H,!0),c.addEventListener("ended",()=>{H(),L("ended")},!0),C=new z(x,E)}W(A,g),this.loadTrack=D,this.play=b,this.stop=w,this.pause=V,this.on=U}function Z(A,g){return new j(A,g)}export{Z as init};
+/*!
+*  cdg.js - a CD+G player for the web, based upon CD+Graphics Magic HTML5 CD+G Player
+*  (http://cdgmagic.sourceforge.net/html5_cdgplayer/). Visit project for full license
+*  information and documentation: https://github.com/willprescott/cdg.js
+*/
+//#region src/cdg.js
+var e = {
+	VRAM_HEIGHT: 216,
+	VISIBLE_WIDTH: 288,
+	VISIBLE_HEIGHT: 192,
+	FONT_WIDTH: 6,
+	FONT_HEIGHT: 12,
+	NUM_X_FONTS: 50,
+	NUM_Y_FONTS: 18,
+	VISIBLE_X_FONTS: 48,
+	VISIBLE_Y_FONTS: 16,
+	PALETTE_ENTRIES: 16,
+	CLUT_ENTRIES: 8,
+	PACK_SIZE: 24,
+	PACKS_PER_SECOND: 300,
+	TV_GRAPHICS: 9,
+	MEMORY_PRESET: 1,
+	BORDER_PRESET: 2,
+	LOAD_CLUT_LO: 30,
+	LOAD_CLUT_HI: 31,
+	COPY_FONT: 6,
+	XOR_FONT: 38,
+	SCROLL_PRESET: 20,
+	SCROLL_COPY: 24
+};
+function t(t, n) {
+	let r = n, i = t.getContext("2d"), a = i.createImageData(e.VISIBLE_WIDTH, e.VISIBLE_HEIGHT), o = Array(e.PALETTE_ENTRIES), s = Array(e.NUM_X_FONTS * e.VRAM_HEIGHT), c = 0, l = 0, u = !1, d = !1, f = Array(e.NUM_X_FONTS * e.NUM_Y_FONTS);
+	function p() {
+		l = 0, c = 0, b(), x(0), y();
+	}
+	function m() {
+		return l;
+	}
+	function h() {
+		if ((u || d) && (r.style.backgroundColor = _(c), u = !1), d) C(), d = !1, y(), i.putImageData(a, 0, 0);
+		else {
+			let t = i, n = a, r = f, o = e.FONT_WIDTH, s = e.FONT_HEIGHT, c = 0;
+			for (let i = 1; i <= e.VISIBLE_Y_FONTS; ++i) {
+				c = i * e.NUM_X_FONTS + 1;
+				for (let a = 1; a <= e.VISIBLE_X_FONTS; ++a) r[c] && (w(a, i), t.putImageData(n, 0, 0, (a - 1) * o, (i - 1) * s, o, s), r[c] = 0), ++c;
+			}
+		}
+	}
+	function g(t, n) {
+		for (let r = l; r < n; r++) {
+			let n = r * e.PACK_SIZE;
+			if ((t.charCodeAt(n) & 63) == e.TV_GRAPHICS) {
+				let r = t.slice(n, n + e.PACK_SIZE);
+				switch (r.charCodeAt(1) & 63) {
+					case e.MEMORY_PRESET:
+						E(r);
+						break;
+					case e.BORDER_PRESET:
+						T(r);
+						break;
+					case e.LOAD_CLUT_LO:
+					case e.LOAD_CLUT_HI:
+						D(r);
+						break;
+					case e.COPY_FONT:
+					case e.XOR_FONT:
+						O(r);
+						break;
+					case e.SCROLL_PRESET:
+					case e.SCROLL_COPY:
+						k(r);
+						break;
+				}
+			}
+		}
+		l = n;
+	}
+	function _(e) {
+		return "rgb(" + (o[e] >> 16 & 255) + "," + (o[e] >> 8 & 255) + "," + (o[e] >> 0 & 255) + ")";
+	}
+	function v(e) {
+		let t = e;
+		return t |= e << 4, t |= e << 8, t |= e << 12, t |= e << 16, t |= e << 20, t;
+	}
+	function y() {
+		for (let t = 0; t < e.NUM_X_FONTS * e.NUM_Y_FONTS; t++) f[t] = 0;
+	}
+	function b() {
+		let t = e.PALETTE_ENTRIES;
+		for (let e = 0; e < t; e++) o[e] = 0;
+	}
+	function x(e) {
+		let t = s, n = t.length, r = v(e);
+		for (let e = 0; e < n; e++) t[e] = r;
+		d = !0;
+	}
+	function S(e, t, n, r) {
+		for (let i of [
+			0,
+			4,
+			8,
+			12,
+			16,
+			20
+		]) {
+			let a = n[r >> i & 15];
+			e[t++] = a >> 16 & 255, e[t++] = a >> 8 & 255, e[t++] = a & 255, e[t++] = 255;
+		}
+		return t;
+	}
+	function C() {
+		let t = a.data, n = o, r = s, i = e.NUM_X_FONTS * e.FONT_HEIGHT + 1, c = 0;
+		for (let a = 0; a < e.VISIBLE_HEIGHT; ++a) {
+			for (let a = 0; a < e.VISIBLE_X_FONTS; ++a) c = S(t, c, n, r[i++]);
+			i += e.NUM_X_FONTS - e.VISIBLE_X_FONTS;
+		}
+	}
+	function w(t, n) {
+		let r = a.data, i = o, c = s, l = n * e.NUM_X_FONTS * e.FONT_HEIGHT + t, u = e.NUM_X_FONTS, d = l + e.NUM_X_FONTS * e.FONT_HEIGHT, f = (n - 1) * e.FONT_HEIGHT * e.VISIBLE_WIDTH;
+		f += (t - 1) * e.FONT_WIDTH, f *= 4;
+		let p = (e.VISIBLE_WIDTH - e.FONT_WIDTH) * 4;
+		for (; l < d;) f = S(r, f, i, c[l]), l += u, f += p;
+	}
+	function T(e) {
+		let t = e.charCodeAt(4) & 63;
+		o[t] != o[c] && (u = !0), c = t;
+	}
+	function E(e) {
+		x(e.charCodeAt(4) & 63);
+	}
+	function D(t) {
+		let n = o, r = (t.charCodeAt(1) & 1) * e.CLUT_ENTRIES;
+		for (let i = 0; i < e.CLUT_ENTRIES; i++) {
+			let e = i + r, a = 0, o = 0;
+			o = (t.charCodeAt(i * 2 + 4) & 60) >> 2, a |= o * 17 << 16, o = (t.charCodeAt(i * 2 + 4) & 3) << 2 | (t.charCodeAt(i * 2 + 5) & 48) >> 4, a |= o * 17 << 8, o = t.charCodeAt(i * 2 + 5) & 15, a |= o * 17 << 0, a != n[e] && (n[e] = a, d = !0, e == c && (u = !0));
+		}
+	}
+	function O(t) {
+		let n = s, r = f, i = (t.charCodeAt(4) & 48) >> 2 | (t.charCodeAt(5) & 48) >> 4, a = t.charCodeAt(1) & 32;
+		if (3 >> i) {
+			let i = t.charCodeAt(7) & 63, o = t.charCodeAt(6) & 31;
+			if (i < e.NUM_X_FONTS && o < e.NUM_Y_FONTS) {
+				let s = o * e.NUM_X_FONTS * e.FONT_HEIGHT + i, c = [t.charCodeAt(4) & 15, t.charCodeAt(5) & 15], l = 0, u = 0;
+				for (let r = 0; r < e.FONT_HEIGHT; r++) {
+					let i = r * e.NUM_X_FONTS + s;
+					l = t.charCodeAt(r + 8), u = c[l >> 5 & 1] << 0, u |= c[l >> 4 & 1] << 4, u |= c[l >> 3 & 1] << 8, u |= c[l >> 2 & 1] << 12, u |= c[l >> 1 & 1] << 16, u |= c[l >> 0 & 1] << 20, a ? n[i] ^= u : n[i] = u;
+				}
+				r[o * e.NUM_X_FONTS + i] = 1;
+			}
+		}
+	}
+	function k(e) {
+		let t, n = (e.charCodeAt(1) & 8) >> 3, r = e.charCodeAt(4) & 15;
+		(t = (e.charCodeAt(5) & 48) >> 4) && A(t, n, r), (t = (e.charCodeAt(6) & 48) >> 4) && j(t, n, r), d = !0;
+	}
+	function A(t, n, r) {
+		let i, a, o, c = 0, l = v(r), u = s, d = e.NUM_X_FONTS * e.VRAM_HEIGHT;
+		if (t == 2) for (a = 0; a < d; a += e.NUM_X_FONTS) {
+			for (o = a, c = u[o], i = o + 1; i < o + e.NUM_X_FONTS; i++) u[i - 1] = u[i];
+			n ? u[o + e.NUM_X_FONTS - 1] = c : u[o + e.NUM_X_FONTS - 1] = l;
+		}
+		else if (t == 1) for (a = 0; a < d; a += e.NUM_X_FONTS) {
+			for (o = a, c = u[o + e.NUM_X_FONTS - 1], i = o + e.NUM_X_FONTS - 2; i >= o; i--) u[i + 1] = u[i];
+			n ? u[o] = c : u[o] = l;
+		}
+	}
+	function j(t, n, r) {
+		let i, a, o = e.NUM_X_FONTS * e.FONT_HEIGHT, c = e.NUM_X_FONTS * e.VRAM_HEIGHT, l = e.NUM_X_FONTS * (e.VRAM_HEIGHT - e.FONT_HEIGHT), u = Array(o), d = v(r), f = s;
+		if (t == 2) {
+			for (i = 0, a = 0; a < o; a++) u[i++] = f[a];
+			for (i = 0, a = o; a < c; a++) f[i++] = f[a];
+			if (i = l, n) for (a = 0; a < o; a++) f[i++] = u[a];
+			else for (a = 0; a < o; a++) f[i++] = d;
+		} else if (t == 1) {
+			for (i = 0, a = l; a < c; a++) u[i++] = f[a];
+			for (a = l - 1; a > 0; a--) f[a + o] = f[a];
+			if (n) for (a = 0; a < o; a++) f[a] = u[a];
+			else for (a = 0; a < o; a++) f[a] = d;
+		}
+	}
+	this.getCurrentPack = m, this.resetCdgState = p, this.redrawCanvas = h, this.decodePacks = g, this.resetCdgState();
+}
+function n(n, r) {
+	let i = {
+		mediaPath: "",
+		audioFormat: "mp3",
+		cdgFileExtension: "cdg"
+	}, a = {
+		mp3: "audio/mpeg; codecs=\"mp3\"",
+		ogg: "audio/ogg; codecs=\"vorbis\""
+	}, o = {}, s = null, c = null, l = null, u = null, d = null;
+	async function f(e) {
+		let t = S(e);
+		x(), d.resetCdgState(), d.redrawCanvas(), u = null, c ??= document.createElement("source"), c.type = a[t.audioFormat], c.src = t.mediaPath + t.audioFilePrefix + "." + t.audioFormat, s.appendChild(c), s.load();
+		try {
+			let e = t.mediaPath + t.cdgFilePrefix + "." + t.cdgFileExtension, n = await fetch(e);
+			if (!n.ok) throw Error(`CDG file failed to load: ${n.status}`);
+			u = await n.text();
+		} catch (e) {
+			_("error", e);
+		}
+		return this;
+	}
+	function p(e, t) {
+		return o[e] || (o[e] = []), o[e].push(t), this;
+	}
+	function m() {
+		s.pause();
+	}
+	function h() {
+		s.play();
+	}
+	function g() {
+		s.pause(), s.currentTime = 0;
+	}
+	function _(e, ...t) {
+		if (o[e] && o[e].length > 0) for (let n of o[e]) n(...t);
+		else e === "error" && console.error(...t);
+	}
+	function v() {
+		if (s.error) {
+			let e = s.error.code ? s.error.code : s.error;
+			_("error", /* @__PURE__ */ Error("The audio control fired an error event. Could be: " + e));
+		}
+	}
+	function y() {
+		if (u != null) {
+			let t = Math.floor(s.currentTime * e.PACKS_PER_SECOND), n = d.getCurrentPack(), r;
+			t = t < 0 ? 0 : t, t < n - e.PACKS_PER_SECOND && (d.resetCdgState(), n = 0), r = n + 6, r = t > r ? t : r, r > n && (d.decodePacks(u, r), d.redrawCanvas());
+		}
+	}
+	function b() {
+		l = setInterval(y, 20);
+	}
+	function x() {
+		clearInterval(l);
+	}
+	function S(e) {
+		if (!e || Array.isArray(e) || typeof e != "string" && typeof e != "object") throw Error("No track information specified, nothing to load!");
+		let t, n, r = i.mediaPath, o = i.audioFormat, s = i.cdgFileExtension;
+		if (typeof e == "object") {
+			if (e.audioFilePrefix) t = e.audioFilePrefix;
+			else throw Error("No audioFilePrefix property defined, nothing to load!");
+			if (n = e.cdgFilePrefix ? e.cdgFilePrefix : e.audioFilePrefix, e.mediaPath && (r = e.mediaPath), e.audioFormat) {
+				if (!a[e.audioFormat]) throw Error("Unsupported audio format specified");
+				o = e.audioFormat;
+			}
+			e.cdgFileExtension && (s = e.cdgFileExtension);
+		} else t = n = e;
+		return {
+			audioFilePrefix: t,
+			cdgFilePrefix: n,
+			mediaPath: r,
+			audioFormat: o,
+			cdgFileExtension: s
+		};
+	}
+	function C(e) {
+		document.fullscreenElement ? document.exitFullscreen?.() : e.target.requestFullscreen();
+	}
+	function w() {
+		s.paused ? s.play() : s.pause();
+	}
+	function T(n, r) {
+		if (!n) throw Error("Required initialisation parameter missing.");
+		let i = document.getElementById(n), a = document.createElement("div"), o = document.createElement("canvas");
+		s = document.createElement("audio"), a.id = n + "-border", a.className = "cdg-border", o.id = n + "-canvas", o.width = e.VISIBLE_WIDTH, o.height = e.VISIBLE_HEIGHT, o.className = "cdg-canvas", r && r.allowClickToPlay !== !1 && o.addEventListener("click", w, !0), r && r.allowFullscreen !== !1 && o.addEventListener("dblclick", C, !0), s.id = n + "-audio", s.className = "cdg-audio", a.appendChild(o), i.appendChild(a), i.appendChild(s), s.style.width = o.offsetWidth + "px", s.controls = !(r && r.showControls == 0), s.autoplay = !(r && r.autoplay == 0), s.addEventListener("error", v, !0), s.addEventListener("play", b, !0), s.addEventListener("pause", x, !0), s.addEventListener("abort", x, !0), s.addEventListener("ended", () => {
+			x(), _("ended");
+		}, !0), d = new t(o, a);
+	}
+	T(n, r), this.loadTrack = f, this.play = h, this.stop = g, this.pause = m, this.on = p;
+}
+function r(e, t) {
+	return new n(e, t);
+}
+//#endregion
+export { r as init };
+
 //# sourceMappingURL=cdg.js.map
