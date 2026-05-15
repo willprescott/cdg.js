@@ -97,93 +97,54 @@ describe("CDGDecoder", () => {
     decoder = new CDGDecoder(mock.canvas, borderDiv);
   });
 
-  // ── Pack counter ────────────────────────────────────────────────────────────
+  // ── setCdgData ──────────────────────────────────────────────────────────────
 
-  describe("getCurrentPack", () => {
-    it("starts at 0", () => {
-      expect(decoder.getCurrentPack()).toBe(0);
-    });
-  });
-
-  describe("decodePacks", () => {
-    it("advances the pack counter to the requested position", () => {
-      decoder.decodePacks(makePack(0x00, 0x00).repeat(5), 5);
-      expect(decoder.getCurrentPack()).toBe(5);
-    });
-
-    it("skips non-TV_GRAPHICS commands without error", () => {
-      decoder.decodePacks(makePack(0x00, MEMORY_PRESET), 1);
-      expect(decoder.getCurrentPack()).toBe(1);
-    });
-
-    it("skips unknown TV_GRAPHICS instructions without error", () => {
-      decoder.decodePacks(makePack(TV_GRAPHICS, 0x99), 1);
-      expect(decoder.getCurrentPack()).toBe(1);
-    });
-  });
-
-  describe("resetCdgState", () => {
-    it("resets the pack counter to 0", () => {
-      decoder.decodePacks(makePack(0x00, 0x00).repeat(10), 10);
-      decoder.resetCdgState();
-      expect(decoder.getCurrentPack()).toBe(0);
-    });
-
-    it("clears the canvas to black on the next redrawCanvas call", () => {
-      // Load palette[0] = red, verify it renders, then reset
-      const clutPack = makeClutPack(LOAD_CLUT_LO, [[15, 0, 0]]);
-      decoder.decodePacks(clutPack, 1);
-      decoder.redrawCanvas();
+  describe("setCdgData", () => {
+    it("immediately clears the canvas to black", () => {
+      // Render a red frame first, then load new data and verify canvas resets.
+      decoder.setCdgData(makeClutPack(LOAD_CLUT_LO, [[15, 0, 0]]));
+      decoder.updateFrame(0);
       expect(pixelAt(mock.imageData, 0, 0)).toEqual([255, 0, 0, 255]);
 
-      decoder.resetCdgState();
-      decoder.redrawCanvas();
+      decoder.setCdgData(makePack(0x00, 0x00));
       expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 0, 0, 255]);
     });
   });
 
-  // ── Palette loading ─────────────────────────────────────────────────────────
+  // ── updateFrame — instruction processing ────────────────────────────────────
 
   describe("LOAD_CLUT_LO", () => {
     it("loads palette entries 0-7 and renders them correctly", () => {
-      // palette[0] = red (15, 0, 0). All VRAM starts as index 0, so all
-      // pixels should become red after redrawCanvas.
-      const pack = makeClutPack(LOAD_CLUT_LO, [[15, 0, 0]]);
-      decoder.decodePacks(pack, 1);
-      decoder.redrawCanvas();
+      decoder.setCdgData(makeClutPack(LOAD_CLUT_LO, [[15, 0, 0]]));
+      decoder.updateFrame(0);
       expect(pixelAt(mock.imageData, 0, 0)).toEqual([255, 0, 0, 255]);
     });
 
     it("does not alter pixels when the loaded color matches the existing value", () => {
-      // Loading black over the default black palette should leave pixels black.
-      const pack = makeClutPack(LOAD_CLUT_LO, [[0, 0, 0]]);
-      decoder.decodePacks(pack, 1);
-      decoder.redrawCanvas();
+      decoder.setCdgData(makeClutPack(LOAD_CLUT_LO, [[0, 0, 0]]));
+      decoder.updateFrame(0);
       expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 0, 0, 255]);
     });
   });
 
   describe("LOAD_CLUT_HI", () => {
     it("loads palette entries 8-15 and renders them correctly", () => {
-      // palette[8] = blue. MEMORY_PRESET fills all VRAM with index 8.
+      // palette[8] = blue via CLUT_HI, then MEMORY_PRESET fills VRAM with index 8.
       const clutPack = makeClutPack(LOAD_CLUT_HI, [[0, 0, 15]]);
       const memPreset = makePack(TV_GRAPHICS, MEMORY_PRESET, [8]);
-      decoder.decodePacks(clutPack + memPreset, 2);
-      decoder.redrawCanvas();
+      decoder.setCdgData(clutPack + memPreset);
+      decoder.updateFrame(0);
       expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 0, 255, 255]);
     });
   });
 
-  // ── VRAM operations ─────────────────────────────────────────────────────────
-
   describe("MEMORY_PRESET", () => {
-    it("fills the entire VRAM with the specified palette index", () => {
-      // palette[1] = green. MEMORY_PRESET with index 1 → all pixels green.
+    it("fills the entire visible area with the specified palette color", () => {
+      // palette[1] = green, MEMORY_PRESET fills all VRAM with index 1.
       const clutPack = makeClutPack(LOAD_CLUT_LO, [[0, 0, 0], [0, 15, 0]]);
       const memPreset = makePack(TV_GRAPHICS, MEMORY_PRESET, [1]);
-      decoder.decodePacks(clutPack + memPreset, 2);
-      decoder.redrawCanvas();
-      // Check top-left and bottom-right of the visible area
+      decoder.setCdgData(clutPack + memPreset);
+      decoder.updateFrame(0);
       expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 255, 0, 255]);
       expect(pixelAt(mock.imageData, 287, 191)).toEqual([0, 255, 0, 255]);
     });
@@ -191,60 +152,80 @@ describe("CDGDecoder", () => {
 
   describe("BORDER_PRESET", () => {
     it("sets the border div background color to the specified palette entry", () => {
-      // palette[1] = blue. BORDER_PRESET with index 1 → border turns blue.
       const clutPack = makeClutPack(LOAD_CLUT_LO, [[0, 0, 0], [0, 0, 15]]);
       const borderPack = makePack(TV_GRAPHICS, BORDER_PRESET, [1]);
-      decoder.decodePacks(clutPack + borderPack, 2);
-      decoder.redrawCanvas();
+      decoder.setCdgData(clutPack + borderPack);
+      decoder.updateFrame(0);
       expect(borderDiv.style.backgroundColor).toBe("rgb(0,0,255)");
     });
 
     it("reflects palette changes in the border color when the index is unchanged", () => {
-      // palette[0] starts black (default border index). Loading red into
-      // palette[0] should update the border to red on the next redraw.
-      const clutPack = makeClutPack(LOAD_CLUT_LO, [[15, 0, 0]]);
-      decoder.decodePacks(clutPack, 1);
-      decoder.redrawCanvas();
+      // Border index defaults to 0. Loading red into palette[0] should update
+      // the border without an explicit BORDER_PRESET instruction.
+      decoder.setCdgData(makeClutPack(LOAD_CLUT_LO, [[15, 0, 0]]));
+      decoder.updateFrame(0);
       expect(borderDiv.style.backgroundColor).toBe("rgb(255,0,0)");
     });
   });
 
-  // ── Font rendering ──────────────────────────────────────────────────────────
-
   describe("COPY_FONT", () => {
     it("writes pixel data into VRAM and renders the block correctly", () => {
-      // palette[0]=black, palette[1]=red. Write font at block (1,1) with
-      // all pixels = color1 (red), then verify the top-left visible pixel.
+      // palette[0]=black, palette[1]=red. CLUT and WRITE_FONT are processed
+      // in the same updateFrame call; the full-screen render (triggered by the
+      // CLUT's screenDirty) reads the already-updated VRAM.
       const clutPack = makeClutPack(LOAD_CLUT_LO, [[0, 0, 0], [15, 0, 0]]);
       const fontPack = makeFontPack(COPY_FONT, 1, 1, 0, 1, new Array(12).fill(0x3f));
-      const cdgData = clutPack + fontPack;
-
-      decoder.decodePacks(cdgData, 1); // CLUT → screenDirty
-      decoder.redrawCanvas();          // full render clears screenDirty (all black)
-      decoder.decodePacks(cdgData, 2); // WRITE_FONT → marks block (1,1) dirty
-      decoder.redrawCanvas();          // block render writes red into block (1,1)
-
+      decoder.setCdgData(clutPack + fontPack);
+      decoder.updateFrame(0);
       expect(pixelAt(mock.imageData, 0, 0)).toEqual([255, 0, 0, 255]);
     });
   });
 
   describe("XOR_FONT", () => {
     it("XORs pixel data into VRAM, toggling written pixels back to the original color", () => {
-      // palette[0]=black, palette[1]=green. Write all-green block, then
-      // XOR with the same pattern → the block XORs back to all-black.
+      // COPY_FONT writes all-green block (1,1), then XOR_FONT with the same
+      // pattern XORs it back to all-black (index 0).
       const clutPack = makeClutPack(LOAD_CLUT_LO, [[0, 0, 0], [0, 15, 0]]);
       const allOnes = new Array(12).fill(0x3f);
       const copyPack = makeFontPack(COPY_FONT, 1, 1, 0, 1, allOnes);
       const xorPack = makeFontPack(XOR_FONT, 1, 1, 0, 1, allOnes);
-      const cdgData = clutPack + copyPack + xorPack;
-
-      decoder.decodePacks(cdgData, 1); // CLUT
-      decoder.redrawCanvas();          // full render (all black)
-      decoder.decodePacks(cdgData, 2); // COPY_FONT → block (1,1) = green
-      decoder.decodePacks(cdgData, 3); // XOR_FONT  → block (1,1) XOR green = black
-      decoder.redrawCanvas();          // block render
-
+      decoder.setCdgData(clutPack + copyPack + xorPack);
+      decoder.updateFrame(0);
       expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 0, 0, 255]);
+    });
+  });
+
+  it("ignores non-TV_GRAPHICS commands", () => {
+    decoder.setCdgData(makePack(0x00, MEMORY_PRESET));
+    decoder.updateFrame(0);
+    expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 0, 0, 255]);
+  });
+
+  it("ignores unknown TV_GRAPHICS instructions", () => {
+    decoder.setCdgData(makePack(TV_GRAPHICS, 0x99));
+    decoder.updateFrame(0);
+    expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 0, 0, 255]);
+  });
+
+  // ── updateFrame — sync behaviour ────────────────────────────────────────────
+
+  describe("backward seek", () => {
+    it("resets state and re-decodes from the start when seeking back more than one second", () => {
+      // Pack 0: blue palette. Pack 300: red palette (overwrites blue).
+      // After playing to pack 306, palette[0] = red → pixels are red.
+      // Seeking back to time 0 triggers a reset because playPosition (0) is
+      // more than one second (300 packs) behind currentPack (306).
+      // Re-decoding from pack 0 only reaches the blue CLUT, not the red one.
+      const bluePack = makeClutPack(LOAD_CLUT_LO, [[0, 0, 15]]);
+      const emptyPacks = makePack(0x00, 0x00).repeat(299);
+      const redPack = makeClutPack(LOAD_CLUT_LO, [[15, 0, 0]]);
+      decoder.setCdgData(bluePack + emptyPacks + redPack);
+
+      decoder.updateFrame(306 / 300); // advances to pack 306; palette[0] = red
+      expect(pixelAt(mock.imageData, 0, 0)).toEqual([255, 0, 0, 255]);
+
+      decoder.updateFrame(0); // seeks back; resets + re-decodes packs 0-5 only
+      expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 0, 255, 255]);
     });
   });
 });
