@@ -29,9 +29,9 @@ function CDGDecoder(canvasEl, borderEl) {
     CDG_ENUM.VISIBLE_WIDTH,
     CDG_ENUM.VISIBLE_HEIGHT,
   ); // 288x192 image data.
-  const palette = new Array(CDG_ENUM.PALETTE_ENTRIES); // Array containing the 16 RGB palette entries.
-  const vram = new Array(CDG_ENUM.NUM_X_FONTS * CDG_ENUM.VRAM_HEIGHT); // Array used for graphics VRAM.
-  const dirtyBlocks = new Array(CDG_ENUM.NUM_X_FONTS * CDG_ENUM.NUM_Y_FONTS); // Array used to determine if a given font/block has changed.
+  const palette = new Uint32Array(CDG_ENUM.PALETTE_ENTRIES); // Array containing the 16 RGB palette entries.
+  const vram = new Uint32Array(CDG_ENUM.NUM_X_FONTS * CDG_ENUM.VRAM_HEIGHT); // Array used for graphics VRAM.
+  const dirtyBlocks = new Uint8Array(CDG_ENUM.NUM_X_FONTS * CDG_ENUM.NUM_Y_FONTS); // Array used to determine if a given font/block has changed.
 
   let cdgData = null; // Raw CDG data buffer.
   let borderIndex = 0x00; // The current border palette index.
@@ -43,9 +43,9 @@ function CDGDecoder(canvasEl, borderEl) {
   function resetCdgState() {
     currentPack = 0x00;
     borderIndex = 0x00;
-    clearPalette();
+    palette.fill(0);
     clearVram(0x00);
-    clearDirtyBlocks();
+    dirtyBlocks.fill(0);
   }
 
   /**
@@ -70,7 +70,7 @@ function CDGDecoder(canvasEl, borderEl) {
     if (screenDirty) {
       renderScreenToRgb();
       screenDirty = false;
-      clearDirtyBlocks();
+      dirtyBlocks.fill(0);
       rgbaContext.putImageData(rgbaImageData, 0, 0);
     } else {
       const localContext = rgbaContext;
@@ -194,33 +194,9 @@ function CDGDecoder(canvasEl, borderEl) {
     return adjustedValue;
   }
 
-  // Reset the state of all font/blocks to clean.
-  function clearDirtyBlocks() {
-    for (
-      let blk = 0;
-      blk < CDG_ENUM.NUM_X_FONTS * CDG_ENUM.NUM_Y_FONTS;
-      blk++
-    ) {
-      dirtyBlocks[blk] = 0x00;
-    }
-  }
-
-  // Reset all the palette RGB values to black.
-  function clearPalette() {
-    const totalPaletteEntries = CDG_ENUM.PALETTE_ENTRIES;
-    for (let idx = 0; idx < totalPaletteEntries; idx++) {
-      palette[idx] = 0x00;
-    }
-  }
-
   // Set all the VRAM index values to requested index.
   function clearVram(colorIndex) {
-    const localVram = vram;
-    const totalVramSize = localVram.length;
-    const packedLineValue = fillLineWithPaletteIndex(colorIndex);
-    for (let pxl = 0; pxl < totalVramSize; pxl++) {
-      localVram[pxl] = packedLineValue;
-    }
+    vram.fill(fillLineWithPaletteIndex(colorIndex));
     screenDirty = true;
   }
 
@@ -443,7 +419,7 @@ function CDGDecoder(canvasEl, borderEl) {
     const vramSize = CDG_ENUM.NUM_X_FONTS * CDG_ENUM.VRAM_HEIGHT;
     const scrollStart =
       CDG_ENUM.NUM_X_FONTS * (CDG_ENUM.VRAM_HEIGHT - CDG_ENUM.FONT_HEIGHT);
-    const buf = new Array(offscreenSize);
+    const buf = new Uint32Array(offscreenSize);
     const lineColor = fillLineWithPaletteIndex(color);
     const localVram = vram;
     if (direction == 0x02) {
