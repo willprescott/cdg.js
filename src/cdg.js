@@ -1,64 +1,29 @@
-/*
- *  This library is heavily based upon CD+Graphics Magic HTML5 CD+G Player
- *  (http://cdgmagic.sourceforge.net/html5_cdgplayer/), which
- *  is distributed under the following licence conditions:
- *
- *  CD+Graphics Magic is free software: you can redistribute it and/or
- *  modify it under the terms of the GNU General Public License as
- *  published by the Free Software Foundation, either version 2 of the
- *  License, or (at your option) any later version.
- *
- *  CD+Graphics Magic is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with CD+Graphics Magic. If not, see <http://www.gnu.org/licenses/>.
- */
-
-/**
- * @typedef {Object} TrackOptions
- * @property {string} audioFilePrefix - Prefix of the audio file (required)
- * @property {string} [cdgFilePrefix] - Prefix of the CDG file; defaults to audioFilePrefix
- * @property {string} [mediaPath=''] - Path to the directory containing media files
- * @property {'mp3'|'ogg'} [audioFormat='mp3'] - Audio format
- * @property {string} [cdgFileExtension='cdg'] - CDG file extension
- */
-
-/**
- * @typedef {Object} InitOptions
- * @property {boolean} [autoplay=true] - Start playing automatically when a track is loaded
- * @property {boolean} [showControls=true] - Show native audio controls
- */
-
-const CDG_ENUM = {
-  VRAM_HEIGHT: 216, // Height of VRAM, in pixels.
-  VISIBLE_WIDTH: 288, // Width (or pitch) of visible screen, in pixels.
-  VISIBLE_HEIGHT: 192, // Height of visible screen, in pixels.
-  FONT_WIDTH: 6, // Width of one "font" (or block).
-  FONT_HEIGHT: 12, // Height of one "font" (or block).
-  NUM_X_FONTS: 50, // Number of horizontal fonts contained in VRAM.
-  NUM_Y_FONTS: 18, // Number of vertical fonts contained in VRAM.
-  VISIBLE_X_FONTS: 48, // Number of visible horizontal font columns.
-  VISIBLE_Y_FONTS: 16, // Number of visible vertical font rows.
-  PALETTE_ENTRIES: 16, // Number of CLUT palette entries.
-  CLUT_ENTRIES: 8, // Number of palette entries per LOAD_CLUT instruction.
-  PACK_SIZE: 24, // Size of one CDG data pack, in bytes.
-  PACKS_PER_SECOND: 300, // CD+G standard pack rate.
-  TV_GRAPHICS: 0x09, // 50x18 (48x16) 16 color TV graphics mode.
-  MEMORY_PRESET: 0x01, // Set all VRAM to palette index.
-  BORDER_PRESET: 0x02, // Set border to palette index.
-  LOAD_CLUT_LO: 0x1e, // Load Color Look Up Table index 0 through 7.
-  LOAD_CLUT_HI: 0x1f, // Load Color Look Up Table index 8 through 15.
-  COPY_FONT: 0x06, // Copy 12x6 pixel font to screen.
-  XOR_FONT: 0x26, // XOR 12x6 pixel font with existing VRAM values.
-  SCROLL_PRESET: 0x14, // Update scroll offset, copying if 0x20 or 0x10.
-  SCROLL_COPY: 0x18, // Update scroll offset, setting color if 0x20 or 0x10.
-};
-
 function CDGDecoder(canvasEl, borderEl) {
-  const borderDiv = borderEl; // DIV element behind graphics canvas.
+  const CDG_ENUM = {
+    VRAM_HEIGHT: 216, // Height of VRAM, in pixels.
+    VISIBLE_WIDTH: 288, // Width (or pitch) of visible screen, in pixels.
+    VISIBLE_HEIGHT: 192, // Height of visible screen, in pixels.
+    FONT_WIDTH: 6, // Width of one "font" (or block).
+    FONT_HEIGHT: 12, // Height of one "font" (or block).
+    NUM_X_FONTS: 50, // Number of horizontal fonts contained in VRAM.
+    NUM_Y_FONTS: 18, // Number of vertical fonts contained in VRAM.
+    VISIBLE_X_FONTS: 48, // Number of visible horizontal font columns.
+    VISIBLE_Y_FONTS: 16, // Number of visible vertical font rows.
+    PALETTE_ENTRIES: 16, // Number of CLUT palette entries.
+    CLUT_ENTRIES: 8, // Number of palette entries per LOAD_CLUT instruction.
+    PACK_SIZE: 24, // Size of one CDG data pack, in bytes.
+    PACKS_PER_SECOND: 300, // CD+G standard pack rate.
+    TV_GRAPHICS: 0x09, // 50x18 (48x16) 16 color TV graphics mode.
+    MEMORY_PRESET: 0x01, // Set all VRAM to palette index.
+    BORDER_PRESET: 0x02, // Set border to palette index.
+    LOAD_CLUT_LO: 0x1e, // Load Color Look Up Table index 0 through 7.
+    LOAD_CLUT_HI: 0x1f, // Load Color Look Up Table index 8 through 15.
+    COPY_FONT: 0x06, // Copy 12x6 pixel font to screen.
+    XOR_FONT: 0x26, // XOR 12x6 pixel font with existing VRAM values.
+    SCROLL_PRESET: 0x14, // Update scroll offset, copying if 0x20 or 0x10.
+    SCROLL_COPY: 0x18, // Update scroll offset, setting color if 0x20 or 0x10.
+    SMOOTHING_PACKS: 6, // Look-ahead buffer for smooth audio/graphics sync.
+  };
   const rgbaContext = canvasEl.getContext("2d"); // 2D context of canvas element.
   const rgbaImageData = rgbaContext.createImageData(
     CDG_ENUM.VISIBLE_WIDTH,
@@ -66,15 +31,15 @@ function CDGDecoder(canvasEl, borderEl) {
   ); // 288x192 image data.
   const palette = new Array(CDG_ENUM.PALETTE_ENTRIES); // Array containing the 16 RGB palette entries.
   const vram = new Array(CDG_ENUM.NUM_X_FONTS * CDG_ENUM.VRAM_HEIGHT); // Array used for graphics VRAM.
-
-  let borderIndex = 0x00; // The current border palette index.
-  let currentPack = 0x00; // The current playback position.
-
-  let borderDirty = false; // State variable used to determine if the background DIV needs updated.
-  let screenDirty = false; // State variable used to determine if a full screen update is needed.
   const dirtyBlocks = new Array(CDG_ENUM.NUM_X_FONTS * CDG_ENUM.NUM_Y_FONTS); // Array used to determine if a given font/block has changed.
 
-  // Reset all the CDG state variables back to initial values.
+  let cdgData = null; // Raw CDG data buffer.
+  let borderIndex = 0x00; // The current border palette index.
+  let currentPack = 0x00; // The current playback position.
+  let borderDirty = false; // State variable used to determine if the background DIV needs updated.
+  let screenDirty = false; // State variable used to determine if a full screen update is needed.
+
+  /** Resets all decoder state to initial values (pack counter, palette, VRAM, dirty flags). */
   function resetCdgState() {
     currentPack = 0x00;
     borderIndex = 0x00;
@@ -83,14 +48,21 @@ function CDGDecoder(canvasEl, borderEl) {
     clearDirtyBlocks();
   }
 
-  function getCurrentPack() {
-    return currentPack;
+  /**
+   * Sets the raw CDG data buffer to be decoded.
+   * @param {String} data
+   */
+  function setCdgData(data) {
+    resetCdgState();
+    redrawCanvas();
+    cdgData = data;
   }
 
+  /** Flushes any pending state changes to the canvas and border element. */
   function redrawCanvas() {
     // If the border color has changed, then update the background div color.
     if (borderDirty || screenDirty) {
-      borderDiv.style.backgroundColor = paletteIndexToRgbTuple(borderIndex);
+      borderEl.style.backgroundColor = paletteIndexToRgbTuple(borderIndex);
       borderDirty = false;
     }
 
@@ -129,14 +101,41 @@ function CDGDecoder(canvasEl, borderEl) {
     }
   }
 
-  // Decode to pack playbackPosition, using cdgFileData.
-  function decodePacks(cdgFileData, playbackPosition) {
+  /**
+   * Updates the CDG frame based on the current playback time.
+   * @param {float} currentTime
+   */
+  function updateFrame(currentTime) {
+    let playPosition = Math.floor(currentTime * CDG_ENUM.PACKS_PER_SECOND);
+    let positionToPlay;
+    playPosition = playPosition < 0 ? 0 : playPosition;
+    // Render from the beginning of the stream if a reverse seek of more than one second occurred.
+    if (playPosition < currentPack - CDG_ENUM.PACKS_PER_SECOND) {
+      resetCdgState();
+      currentPack = 0;
+    }
+    positionToPlay = currentPack + CDG_ENUM.SMOOTHING_PACKS;
+    // Jump to the actual play position if it's ahead of our calculated smoothed position.
+    positionToPlay =
+      playPosition > positionToPlay ? playPosition : positionToPlay;
+    // Check if we should render any packs, and do so if needed.
+    if (positionToPlay > currentPack) {
+      decodePacks(positionToPlay);
+      redrawCanvas();
+    }
+  }
+
+  /**
+   * Decodes CDG packs up to the given position.
+   * @param {number} playbackPosition - Pack index to decode up to (exclusive)
+   */
+  function decodePacks(playbackPosition) {
     for (let currPack = currentPack; currPack < playbackPosition; currPack++) {
       const startOffset = currPack * CDG_ENUM.PACK_SIZE;
-      const currCommand = cdgFileData.charCodeAt(startOffset) & 0x3f;
+      const currCommand = cdgData.charCodeAt(startOffset) & 0x3f;
       if (currCommand == CDG_ENUM.TV_GRAPHICS) {
         // Slice the file array down to a single pack array.
-        const thisPack = cdgFileData.slice(
+        const thisPack = cdgData.slice(
           startOffset,
           startOffset + CDG_ENUM.PACK_SIZE,
         );
@@ -489,17 +488,34 @@ function CDGDecoder(canvasEl, borderEl) {
   }
 
   // Bind the public functions to member variables.
-  this.getCurrentPack = getCurrentPack;
-  this.resetCdgState = resetCdgState;
-  this.redrawCanvas = redrawCanvas;
-  this.decodePacks = decodePacks;
-  this.resetCdgState();
+  this.setCdgData = setCdgData;
+  this.updateFrame = updateFrame;
+
+  // initialise CDG state
+  resetCdgState();
+  canvasEl.width = CDG_ENUM.VISIBLE_WIDTH;
+  canvasEl.height = CDG_ENUM.VISIBLE_HEIGHT;
 }
+
+/**
+ * @typedef {Object} TrackOptions
+ * @property {string} audioFilePrefix - Prefix of the audio file (required)
+ * @property {string} [cdgFilePrefix] - Prefix of the CDG file; defaults to audioFilePrefix
+ * @property {string} [mediaPath=''] - Path to the directory containing media files
+ * @property {'mp3'|'ogg'} [audioFormat='mp3'] - Audio format
+ * @property {string} [cdgFileExtension='cdg'] - CDG file extension
+ */
+
+/**
+ * @typedef {Object} InitOptions
+ * @property {boolean} [autoplay=true] - Start playing automatically when a track is loaded
+ * @property {boolean} [showControls=true] - Show native audio controls
+ * @property {boolean} [allowFullscreen=true] - Allow player to be toggled into fullscreen on double-click
+ * @property {boolean} [allowClickToPlay=true] - Allow play/pause toggle on click
+ */
 
 function CDGPlayer(containerId, initOptions) {
   const UPDATE_INTERVAL_MS = 20; // Canvas refresh rate.
-  const SMOOTHING_PACKS = 6; // Look-ahead buffer for smooth audio/graphics sync.
-
   const defaults = {
     mediaPath: "",
     audioFormat: "mp3",
@@ -513,7 +529,6 @@ function CDGPlayer(containerId, initOptions) {
   let audioPlayer = null;
   let audioSourceElement = null;
   let cdgIntervalID = null;
-  let cdgData = null;
   let cdgDecoder = null;
 
   /**
@@ -523,10 +538,8 @@ function CDGPlayer(containerId, initOptions) {
    */
   async function loadTrack(trackOptions) {
     const trackInfo = parseTrackOptions(trackOptions);
+    let cdgData = null;
     clearCDGInterval();
-    cdgDecoder.resetCdgState();
-    cdgDecoder.redrawCanvas();
-    cdgData = null;
     if (audioSourceElement == null) {
       audioSourceElement = document.createElement("source");
     }
@@ -549,6 +562,7 @@ function CDGPlayer(containerId, initOptions) {
         throw new Error(`CDG file failed to load: ${response.status}`);
       }
       cdgData = await response.text();
+      cdgDecoder.setCdgData(cdgData);
     } catch (error) {
       emit("error", error);
     }
@@ -609,33 +623,10 @@ function CDGPlayer(containerId, initOptions) {
     }
   }
 
-  function updatePlayPosition() {
-    if (cdgData != null) {
-      let playPosition = Math.floor(
-        audioPlayer.currentTime * CDG_ENUM.PACKS_PER_SECOND,
-      );
-      let currentPack = cdgDecoder.getCurrentPack();
-      let positionToPlay;
-      playPosition = playPosition < 0 ? 0 : playPosition;
-      // Render from the beginning of the stream if a reverse seek of more than one second occurred.
-      if (playPosition < currentPack - CDG_ENUM.PACKS_PER_SECOND) {
-        cdgDecoder.resetCdgState();
-        currentPack = 0;
-      }
-      positionToPlay = currentPack + SMOOTHING_PACKS;
-      // Jump to the actual play position if it's ahead of our calculated smoothed position.
-      positionToPlay =
-        playPosition > positionToPlay ? playPosition : positionToPlay;
-      // Check if we should render any packs, and do so if needed.
-      if (positionToPlay > currentPack) {
-        cdgDecoder.decodePacks(cdgData, positionToPlay);
-        cdgDecoder.redrawCanvas();
-      }
-    }
-  }
-
   function setCDGInterval() {
-    cdgIntervalID = setInterval(updatePlayPosition, UPDATE_INTERVAL_MS);
+    cdgIntervalID = setInterval(() => {
+      cdgDecoder.updateFrame(audioPlayer.currentTime);
+    }, UPDATE_INTERVAL_MS);
   }
 
   function clearCDGInterval() {
@@ -720,8 +711,6 @@ function CDGPlayer(containerId, initOptions) {
     borderEl.id = containerId + "-border";
     borderEl.className = "cdg-border";
     canvasEl.id = containerId + "-canvas";
-    canvasEl.width = CDG_ENUM.VISIBLE_WIDTH;
-    canvasEl.height = CDG_ENUM.VISIBLE_HEIGHT;
     canvasEl.className = "cdg-canvas";
     if (initOptions && initOptions.allowClickToPlay !== false) {
       canvasEl.addEventListener("click", togglePlay, true);
@@ -771,3 +760,5 @@ function CDGPlayer(containerId, initOptions) {
 export function init(containerId, initOptions) {
   return new CDGPlayer(containerId, initOptions);
 }
+
+export { CDGDecoder };
