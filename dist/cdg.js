@@ -183,50 +183,45 @@ function t(t, n) {
 	}, i = {
 		mp3: "audio/mpeg; codecs=\"mp3\"",
 		ogg: "audio/ogg; codecs=\"vorbis\""
-	}, a = {}, o = null, s = null, c = null, l = null;
-	async function u(e) {
-		let t = y(e), n = null;
-		v(), s ??= document.createElement("source"), s.type = i[t.audioFormat], s.src = t.mediaPath + t.audioFilePrefix + "." + t.audioFormat, o.appendChild(s), o.load();
+	}, a = {}, o = null, s = null, c = null;
+	async function l(e) {
+		let t = _(e), n = null;
+		s ??= document.createElement("source"), s.type = i[t.audioFormat], s.src = t.mediaPath + t.audioFilePrefix + "." + t.audioFormat, o.appendChild(s), o.load();
 		try {
 			let e = t.mediaPath + t.cdgFilePrefix + "." + t.cdgFileExtension, r = await fetch(e);
 			if (!r.ok) throw Error(`CDG file failed to load: ${r.status}`);
-			n = await r.text(), l.setCdgData(n);
+			n = await r.text(), c.setCdgData(n);
 		} catch (e) {
-			h("error", e);
+			m("error", e);
 		}
 		return this;
 	}
-	function d(e, t) {
+	function u(e, t) {
 		return a[e] || (a[e] = []), a[e].push(t), this;
 	}
-	function f() {
+	function d() {
 		o.pause();
 	}
-	function p() {
+	function f() {
 		o.play();
 	}
-	function m() {
+	function p() {
 		o.pause(), o.currentTime = 0;
 	}
-	function h(e, ...t) {
+	function m(e, ...t) {
 		if (a[e] && a[e].length > 0) for (let n of a[e]) n(...t);
 		else e === "error" && console.error(...t);
 	}
-	function g() {
+	function h() {
 		if (o.error) {
 			let e = o.error.code ? o.error.code : o.error;
-			h("error", /* @__PURE__ */ Error("The audio control fired an error event. Could be: " + e));
+			m("error", /* @__PURE__ */ Error("The audio control fired an error event. Could be: " + e));
 		}
 	}
-	function _() {
-		c = setInterval(() => {
-			l.updateFrame(o.currentTime);
-		}, 20);
+	function g() {
+		c.updateFrame(o.currentTime), o.paused || requestAnimationFrame(g);
 	}
-	function v() {
-		clearInterval(c);
-	}
-	function y(e) {
+	function _(e) {
 		if (!e || Array.isArray(e) || typeof e != "string" && typeof e != "object") throw Error("No track information specified, nothing to load!");
 		let t, n, a = r.mediaPath, o = r.audioFormat, s = r.cdgFileExtension;
 		if (typeof e == "object") {
@@ -246,20 +241,18 @@ function t(t, n) {
 			cdgFileExtension: s
 		};
 	}
-	function b(e) {
+	function v(e) {
 		document.fullscreenElement ? document.exitFullscreen?.() : e.target.requestFullscreen();
 	}
-	function x() {
+	function y() {
 		o.paused ? o.play() : o.pause();
 	}
-	function S(t, n) {
+	function b(t, n) {
 		if (!t) throw Error("Required initialisation parameter missing.");
 		let r = document.getElementById(t), i = document.createElement("div"), a = document.createElement("canvas");
-		o = document.createElement("audio"), i.id = t + "-border", i.className = "cdg-border", a.id = t + "-canvas", a.className = "cdg-canvas", n && n.allowClickToPlay !== !1 && a.addEventListener("click", x, !0), n && n.allowFullscreen !== !1 && a.addEventListener("dblclick", b, !0), o.id = t + "-audio", o.className = "cdg-audio", i.appendChild(a), r.appendChild(i), r.appendChild(o), o.style.width = a.offsetWidth + "px", o.controls = !(n && n.showControls == 0), o.autoplay = !(n && n.autoplay == 0), o.addEventListener("error", g, !0), o.addEventListener("play", _, !0), o.addEventListener("pause", v, !0), o.addEventListener("abort", v, !0), o.addEventListener("ended", () => {
-			v(), h("ended");
-		}, !0), l = new e(a, i);
+		o = document.createElement("audio"), i.id = t + "-border", i.className = "cdg-border", a.id = t + "-canvas", a.className = "cdg-canvas", n && n.allowClickToPlay !== !1 && a.addEventListener("click", y, !0), n && n.allowFullscreen !== !1 && a.addEventListener("dblclick", v, !0), o.id = t + "-audio", o.className = "cdg-audio", i.appendChild(a), r.appendChild(i), r.appendChild(o), o.style.width = a.offsetWidth + "px", o.controls = !(n && n.showControls == 0), o.autoplay = !(n && n.autoplay == 0), o.addEventListener("error", h, !0), o.addEventListener("play", () => requestAnimationFrame(g), !0), o.addEventListener("ended", () => m("ended"), !0), c = new e(a, i);
 	}
-	S(t, n), this.loadTrack = u, this.play = p, this.stop = m, this.pause = f, this.on = d;
+	b(t, n), this.loadTrack = l, this.play = f, this.stop = p, this.pause = d, this.on = u;
 }
 function n(e, n) {
 	return new t(e, n);

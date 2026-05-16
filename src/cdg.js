@@ -491,7 +491,6 @@ function CDGDecoder(canvasEl, borderEl) {
  */
 
 function CDGPlayer(containerId, initOptions) {
-  const UPDATE_INTERVAL_MS = 20; // Canvas refresh rate.
   const defaults = {
     mediaPath: "",
     audioFormat: "mp3",
@@ -504,7 +503,6 @@ function CDGPlayer(containerId, initOptions) {
   const listeners = {};
   let audioPlayer = null;
   let audioSourceElement = null;
-  let cdgIntervalID = null;
   let cdgDecoder = null;
 
   /**
@@ -515,7 +513,6 @@ function CDGPlayer(containerId, initOptions) {
   async function loadTrack(trackOptions) {
     const trackInfo = parseTrackOptions(trackOptions);
     let cdgData = null;
-    clearCDGInterval();
     if (audioSourceElement == null) {
       audioSourceElement = document.createElement("source");
     }
@@ -599,14 +596,11 @@ function CDGPlayer(containerId, initOptions) {
     }
   }
 
-  function setCDGInterval() {
-    cdgIntervalID = setInterval(() => {
-      cdgDecoder.updateFrame(audioPlayer.currentTime);
-    }, UPDATE_INTERVAL_MS);
-  }
-
-  function clearCDGInterval() {
-    clearInterval(cdgIntervalID);
+  function updatePlayPosition() {
+    cdgDecoder.updateFrame(audioPlayer.currentTime);
+    if (!audioPlayer.paused) {
+      requestAnimationFrame(updatePlayPosition);
+    }
   }
 
   function parseTrackOptions(trackOptions) {
@@ -703,17 +697,8 @@ function CDGPlayer(containerId, initOptions) {
     audioPlayer.controls = !(initOptions && initOptions.showControls == false);
     audioPlayer.autoplay = !(initOptions && initOptions.autoplay == false);
     audioPlayer.addEventListener("error", handleAudioError, true);
-    audioPlayer.addEventListener("play", setCDGInterval, true);
-    audioPlayer.addEventListener("pause", clearCDGInterval, true);
-    audioPlayer.addEventListener("abort", clearCDGInterval, true);
-    audioPlayer.addEventListener(
-      "ended",
-      () => {
-        clearCDGInterval();
-        emit("ended");
-      },
-      true,
-    );
+    audioPlayer.addEventListener("play", () => requestAnimationFrame(updatePlayPosition), true);
+    audioPlayer.addEventListener("ended", () => emit("ended"), true);
     cdgDecoder = new CDGDecoder(canvasEl, borderEl);
   }
 
