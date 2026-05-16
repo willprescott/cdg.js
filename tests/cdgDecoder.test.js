@@ -10,6 +10,7 @@ const LOAD_CLUT_LO = 0x1e;
 const LOAD_CLUT_HI = 0x1f;
 const COPY_FONT = 0x06;
 const XOR_FONT = 0x26;
+const SCROLL_COPY = 0x18;
 
 // Builds a 24-byte CDG pack as a string. Data bytes are placed starting at
 // offset 4 (the subcode data region); bytes outside data default to 0.
@@ -192,6 +193,54 @@ describe("CDGDecoder", () => {
       decoder.setCdgData(clutPack + copyPack + xorPack);
       decoder.updateFrame(0);
       expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 0, 0, 255]);
+    });
+  });
+
+  describe("SCROLL_COPY vertical", () => {
+    it("preserves uniform VRAM content after a vertical copy scroll", () => {
+      // Fill VRAM with blue (palette[8]) then scroll down with copyFlag=1.
+      // Since all rows are identical, wrapping the offscreen row back in leaves
+      // every pixel unchanged — verifying Uint32Array copy in procVramVscroll.
+      const clutPack = makeClutPack(LOAD_CLUT_HI, [[0, 0, 15]]);
+      const memPreset = makePack(TV_GRAPHICS, MEMORY_PRESET, [8]);
+      // data[0]=color, data[1]=h-dir (0=none), data[2]=v-dir (0x20 = down)
+      const scrollPack = makePack(TV_GRAPHICS, SCROLL_COPY, [0, 0, 0x20]);
+      decoder.setCdgData(clutPack + memPreset + scrollPack);
+      decoder.updateFrame(0);
+      expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 0, 255, 255]);
+      expect(pixelAt(mock.imageData, 287, 191)).toEqual([0, 0, 255, 255]);
+    });
+  });
+
+  describe("SCROLL_COPY horizontal", () => {
+    it("preserves uniform VRAM content after a horizontal copy scroll", () => {
+      // Fill VRAM with blue (palette[8]) then scroll left with copyFlag=1.
+      // Since all columns are identical, wrapping the offscreen column back in
+      // leaves every pixel unchanged — verifying Uint32Array copy in procVramHscroll.
+      const clutPack = makeClutPack(LOAD_CLUT_HI, [[0, 0, 15]]);
+      const memPreset = makePack(TV_GRAPHICS, MEMORY_PRESET, [8]);
+      // data[0]=color, data[1]=h-dir (0x20 = left), data[2]=v-dir (0=none)
+      const scrollPack = makePack(TV_GRAPHICS, SCROLL_COPY, [0, 0x20, 0]);
+      decoder.setCdgData(clutPack + memPreset + scrollPack);
+      decoder.updateFrame(0);
+      expect(pixelAt(mock.imageData, 0, 0)).toEqual([0, 0, 255, 255]);
+      expect(pixelAt(mock.imageData, 287, 191)).toEqual([0, 0, 255, 255]);
+    });
+  });
+
+  describe("max-value palette entry", () => {
+    it("stores and renders a white palette entry (0xFFFFFF) correctly via Uint32Array", () => {
+      // palette[15] = white (R=15, G=15, B=15 → 0xFFFFFF), which is the largest
+      // value stored in palette's Uint32Array. MEMORY_PRESET(15) fills all VRAM.
+      const clutPack = makeClutPack(LOAD_CLUT_HI, [
+        [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0],
+        [0, 0, 0], [0, 0, 0], [0, 0, 0], [15, 15, 15],
+      ]);
+      const memPreset = makePack(TV_GRAPHICS, MEMORY_PRESET, [15]);
+      decoder.setCdgData(clutPack + memPreset);
+      decoder.updateFrame(0);
+      expect(pixelAt(mock.imageData, 0, 0)).toEqual([255, 255, 255, 255]);
+      expect(pixelAt(mock.imageData, 143, 95)).toEqual([255, 255, 255, 255]);
     });
   });
 

@@ -29,20 +29,20 @@ function e(e, t) {
 		SCROLL_PRESET: 20,
 		SCROLL_COPY: 24,
 		SMOOTHING_PACKS: 6
-	}, r = e.getContext("2d"), i = r.createImageData(n.VISIBLE_WIDTH, n.VISIBLE_HEIGHT), a = Array(n.PALETTE_ENTRIES), o = Array(n.NUM_X_FONTS * n.VRAM_HEIGHT), s = Array(n.NUM_X_FONTS * n.NUM_Y_FONTS), c = null, l = 0, u = 0, d = !1, f = !1;
+	}, r = e.getContext("2d"), i = r.createImageData(n.VISIBLE_WIDTH, n.VISIBLE_HEIGHT), a = new Uint32Array(n.PALETTE_ENTRIES), o = new Uint32Array(n.NUM_X_FONTS * n.VRAM_HEIGHT), s = new Uint8Array(n.NUM_X_FONTS * n.NUM_Y_FONTS), c = null, l = 0, u = 0, d = !1, f = !1;
 	function p() {
-		u = 0, l = 0, x(), S(0), b();
+		u = 0, l = 0, a.fill(0), b(0), s.fill(0);
 	}
 	function m(e) {
 		p(), h(), c = e;
 	}
 	function h() {
-		if ((d || f) && (t.style.backgroundColor = v(l), d = !1), f) w(), f = !1, b(), r.putImageData(i, 0, 0);
+		if ((d || f) && (t.style.backgroundColor = v(l), d = !1), f) S(), f = !1, s.fill(0), r.putImageData(i, 0, 0);
 		else {
 			let e = r, t = i, a = s, o = n.FONT_WIDTH, c = n.FONT_HEIGHT, l = 0;
 			for (let r = 1; r <= n.VISIBLE_Y_FONTS; ++r) {
 				l = r * n.NUM_X_FONTS + 1;
-				for (let i = 1; i <= n.VISIBLE_X_FONTS; ++i) a[l] && (T(i, r), e.putImageData(t, 0, 0, (i - 1) * o, (r - 1) * c, o, c), a[l] = 0), ++l;
+				for (let i = 1; i <= n.VISIBLE_X_FONTS; ++i) a[l] && (C(i, r), e.putImageData(t, 0, 0, (i - 1) * o, (r - 1) * c, o, c), a[l] = 0), ++l;
 			}
 		}
 	}
@@ -57,22 +57,22 @@ function e(e, t) {
 				let t = c.slice(e, e + n.PACK_SIZE);
 				switch (t.charCodeAt(1) & 63) {
 					case n.MEMORY_PRESET:
-						D(t);
+						T(t);
 						break;
 					case n.BORDER_PRESET:
-						E(t);
+						w(t);
 						break;
 					case n.LOAD_CLUT_LO:
 					case n.LOAD_CLUT_HI:
-						O(t);
+						E(t);
 						break;
 					case n.COPY_FONT:
 					case n.XOR_FONT:
-						k(t);
+						D(t);
 						break;
 					case n.SCROLL_PRESET:
 					case n.SCROLL_COPY:
-						A(t);
+						O(t);
 						break;
 				}
 			}
@@ -86,19 +86,10 @@ function e(e, t) {
 		let t = e;
 		return t |= e << 4, t |= e << 8, t |= e << 12, t |= e << 16, t |= e << 20, t;
 	}
-	function b() {
-		for (let e = 0; e < n.NUM_X_FONTS * n.NUM_Y_FONTS; e++) s[e] = 0;
+	function b(e) {
+		o.fill(y(e)), f = !0;
 	}
-	function x() {
-		let e = n.PALETTE_ENTRIES;
-		for (let t = 0; t < e; t++) a[t] = 0;
-	}
-	function S(e) {
-		let t = o, n = t.length, r = y(e);
-		for (let e = 0; e < n; e++) t[e] = r;
-		f = !0;
-	}
-	function C(e, t, n, r) {
+	function x(e, t, n, r) {
 		for (let i of [
 			0,
 			4,
@@ -112,34 +103,34 @@ function e(e, t) {
 		}
 		return t;
 	}
-	function w() {
+	function S() {
 		let e = i.data, t = a, r = o, s = n.NUM_X_FONTS * n.FONT_HEIGHT + 1, c = 0;
 		for (let i = 0; i < n.VISIBLE_HEIGHT; ++i) {
-			for (let i = 0; i < n.VISIBLE_X_FONTS; ++i) c = C(e, c, t, r[s++]);
+			for (let i = 0; i < n.VISIBLE_X_FONTS; ++i) c = x(e, c, t, r[s++]);
 			s += n.NUM_X_FONTS - n.VISIBLE_X_FONTS;
 		}
 	}
-	function T(e, t) {
+	function C(e, t) {
 		let r = i.data, s = a, c = o, l = t * n.NUM_X_FONTS * n.FONT_HEIGHT + e, u = n.NUM_X_FONTS, d = l + n.NUM_X_FONTS * n.FONT_HEIGHT, f = (t - 1) * n.FONT_HEIGHT * n.VISIBLE_WIDTH;
 		f += (e - 1) * n.FONT_WIDTH, f *= 4;
 		let p = (n.VISIBLE_WIDTH - n.FONT_WIDTH) * 4;
-		for (; l < d;) f = C(r, f, s, c[l]), l += u, f += p;
+		for (; l < d;) f = x(r, f, s, c[l]), l += u, f += p;
 	}
-	function E(e) {
+	function w(e) {
 		let t = e.charCodeAt(4) & 63;
 		a[t] != a[l] && (d = !0), l = t;
 	}
-	function D(e) {
-		S(e.charCodeAt(4) & 63);
+	function T(e) {
+		b(e.charCodeAt(4) & 63);
 	}
-	function O(e) {
+	function E(e) {
 		let t = a, r = (e.charCodeAt(1) & 1) * n.CLUT_ENTRIES;
 		for (let i = 0; i < n.CLUT_ENTRIES; i++) {
 			let n = i + r, a = 0, o = 0;
 			o = (e.charCodeAt(i * 2 + 4) & 60) >> 2, a |= o * 17 << 16, o = (e.charCodeAt(i * 2 + 4) & 3) << 2 | (e.charCodeAt(i * 2 + 5) & 48) >> 4, a |= o * 17 << 8, o = e.charCodeAt(i * 2 + 5) & 15, a |= o * 17 << 0, a != t[n] && (t[n] = a, f = !0, n == l && (d = !0));
 		}
 	}
-	function k(e) {
+	function D(e) {
 		let t = o, r = s, i = (e.charCodeAt(4) & 48) >> 2 | (e.charCodeAt(5) & 48) >> 4, a = e.charCodeAt(1) & 32;
 		if (3 >> i) {
 			let i = e.charCodeAt(7) & 63, o = e.charCodeAt(6) & 31;
@@ -153,11 +144,11 @@ function e(e, t) {
 			}
 		}
 	}
-	function A(e) {
+	function O(e) {
 		let t, n = (e.charCodeAt(1) & 8) >> 3, r = e.charCodeAt(4) & 15;
-		(t = (e.charCodeAt(5) & 48) >> 4) && j(t, n, r), (t = (e.charCodeAt(6) & 48) >> 4) && M(t, n, r), f = !0;
+		(t = (e.charCodeAt(5) & 48) >> 4) && k(t, n, r), (t = (e.charCodeAt(6) & 48) >> 4) && A(t, n, r), f = !0;
 	}
-	function j(e, t, r) {
+	function k(e, t, r) {
 		let i, a, s, c = 0, l = y(r), u = o, d = n.NUM_X_FONTS * n.VRAM_HEIGHT;
 		if (e == 2) for (a = 0; a < d; a += n.NUM_X_FONTS) {
 			for (s = a, c = u[s], i = s + 1; i < s + n.NUM_X_FONTS; i++) u[i - 1] = u[i];
@@ -168,8 +159,8 @@ function e(e, t) {
 			t ? u[s] = c : u[s] = l;
 		}
 	}
-	function M(e, t, r) {
-		let i, a, s = n.NUM_X_FONTS * n.FONT_HEIGHT, c = n.NUM_X_FONTS * n.VRAM_HEIGHT, l = n.NUM_X_FONTS * (n.VRAM_HEIGHT - n.FONT_HEIGHT), u = Array(s), d = y(r), f = o;
+	function A(e, t, r) {
+		let i, a, s = n.NUM_X_FONTS * n.FONT_HEIGHT, c = n.NUM_X_FONTS * n.VRAM_HEIGHT, l = n.NUM_X_FONTS * (n.VRAM_HEIGHT - n.FONT_HEIGHT), u = new Uint32Array(s), d = y(r), f = o;
 		if (e == 2) {
 			for (i = 0, a = 0; a < s; a++) u[i++] = f[a];
 			for (i = 0, a = s; a < c; a++) f[i++] = f[a];
